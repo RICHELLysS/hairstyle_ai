@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { Upload, Loader2, CheckCircle2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import FaceAnalyzer from './FaceAnalyzer';
+import PhotoUploader from './PhotoUploader';
+import ResultViewer from './ResultViewer';
+import { analyzeFace } from '../hooks/useChromeAI';
+import { generateHairstyle } from '../hooks/useCamera';
 
 export default function HairstyleAI() {
   const [personImg, setPersonImg] = useState(null);
@@ -9,22 +14,40 @@ export default function HairstyleAI() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [faceAnalysis, setFaceAnalysis] = useState(null);
 
-  const handleImageUpload = (e, type) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (type === 'person') {
-          setPersonImg(file);
-          setPersonPreview(reader.result);
-        } else {
-          setHairstyleImg(file);
-          setHairstylePreview(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageUpload = (file, type) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (type === 'person') {
+        setPersonImg(file);
+        setPersonPreview(reader.result);
+        // 重置面部分析结果
+        setFaceAnalysis(null);
+      } else {
+        setHairstyleImg(file);
+        setHairstylePreview(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePersonUpload = (file) => {
+    handleImageUpload(file, 'person');
+  };
+
+  const handleHairstyleUpload = (file) => {
+    handleImageUpload(file, 'hairstyle');
+  };
+
+  const handleFaceAnalysisComplete = (result) => {
+    setFaceAnalysis(result);
+    console.log('面部分析完成:', result);
+  };
+
+  const handleFaceAnalysisError = (error) => {
+    console.error('面部分析错误:', error);
+    setError(`面部分析失败: ${error}`);
   };
 
   const handleGenerate = async () => {
@@ -33,32 +56,35 @@ export default function HairstyleAI() {
       return;
     }
 
+    // 检查是否已完成面部分析
+    if (!faceAnalysis || !faceAnalysis.faceDetected) {
+      setError('请确保面部分析已完成且检测到人脸');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
 
-    const formData = new FormData();
-    formData.append('person', personImg);
-    formData.append('hairstyle', hairstyleImg);
-
     try {
-      const response = await fetch('http://localhost:5000/api/generate-hairstyle', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setResult(data.result_url);
-      } else {
-        setError(data.error || '生成失败');
-      }
+      const data = await generateHairstyle(personImg, hairstyleImg, faceAnalysis);
+      setResult(data.result_url);
     } catch (err) {
-      setError('网络错误: ' + err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRegenerate = () => {
+    handleGenerate();
+  };
+
+  const handleDownload = (resultUrl) => {
+    const link = document.createElement('a');
+    link.href = resultUrl;
+    link.download = 'new-hairstyle.jpg';
+    link.click();
   };
 
   return (
@@ -71,49 +97,30 @@ export default function HairstyleAI() {
 
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           {/* 上传真人照片 */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">1. 上传你的照片</h3>
-            <label className="block cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e, 'person')}
-                className="hidden"
-              />
-              <div className="border-2 border-dashed border-purple-300 rounded-xl h-64 flex items-center justify-center hover:border-purple-500 transition-colors">
-                {personPreview ? (
-                  <img src={personPreview} alt="预览" className="max-h-full max-w-full object-contain rounded-xl" />
-                ) : (
-                  <div className="text-center">
-                    <Upload className="w-12 h-12 mx-auto mb-2 text-purple-400" />
-                    <p className="text-gray-500">点击上传照片</p>
-                  </div>
-                )}
-              </div>
-            </label>
+          <div className="space-y-4">
+            <PhotoUploader
+              onImageUpload={handlePersonUpload}
+              type="person"
+              previewUrl={personPreview}
+              title="1. 上传你的照片"
+            />
+            
+            {/* 面部分析组件 */}
+            <FaceAnalyzer
+              personImg={personImg}
+              onAnalysisComplete={handleFaceAnalysisComplete}
+              onAnalysisError={handleFaceAnalysisError}
+            />
           </div>
 
           {/* 上传发型照片 */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">2. 上传发型参考</h3>
-            <label className="block cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e, 'hairstyle')}
-                className="hidden"
-              />
-              <div className="border-2 border-dashed border-pink-300 rounded-xl h-64 flex items-center justify-center hover:border-pink-500 transition-colors">
-                {hairstylePreview ? (
-                  <img src={hairstylePreview} alt="预览" className="max-h-full max-w-full object-contain rounded-xl" />
-                ) : (
-                  <div className="text-center">
-                    <Upload className="w-12 h-12 mx-auto mb-2 text-pink-400" />
-                    <p className="text-gray-500">点击上传发型图</p>
-                  </div>
-                )}
-              </div>
-            </label>
+          <div>
+            <PhotoUploader
+              onImageUpload={handleHairstyleUpload}
+              type="hairstyle"
+              previewUrl={hairstylePreview}
+              title="2. 上传发型参考"
+            />
           </div>
         </div>
 
@@ -121,7 +128,7 @@ export default function HairstyleAI() {
         <div className="text-center mb-8">
           <button
             onClick={handleGenerate}
-            disabled={loading || !personImg || !hairstyleImg}
+            disabled={loading || !personImg || !hairstyleImg || !faceAnalysis || !faceAnalysis.faceDetected}
             className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-12 py-4 rounded-full text-lg font-semibold hover:shadow-2xl transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {loading ? (
@@ -144,28 +151,12 @@ export default function HairstyleAI() {
 
         {/* 结果展示 */}
         {result && (
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
-            <div className="flex items-center gap-2 mb-6">
-              <CheckCircle2 className="w-6 h-6 text-green-500" />
-              <h3 className="text-2xl font-semibold text-gray-800">生成完成！</h3>
-            </div>
-            <div className="flex justify-center">
-              <img
-                src={result}
-                alt="生成结果"
-                className="max-w-full max-h-96 rounded-xl shadow-lg"
-              />
-            </div>
-            <div className="mt-6 text-center">
-              <a
-                href={result}
-                download="new-hairstyle.jpg"
-                className="inline-block bg-purple-600 text-white px-8 py-3 rounded-full hover:bg-purple-700 transition-colors"
-              >
-                下载图片
-              </a>
-            </div>
-          </div>
+          <ResultViewer
+            result={result}
+            onDownload={handleDownload}
+            onRegenerate={handleRegenerate}
+            isLoading={loading}
+          />
         )}
       </div>
     </div>
