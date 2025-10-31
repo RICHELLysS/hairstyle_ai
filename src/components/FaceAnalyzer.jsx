@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Scan, CheckCircle2, AlertCircle, User, RotateCcw, X } from 'lucide-react';
 import { useChromeAI } from '../hooks/useChromeAI';
+import useLanguage from '../hooks/useLanguage';
 
 const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
   const [analysis, setAnalysis] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [showCancelOption, setShowCancelOption] = useState(false);
-  
+  const { t, currentLanguage } = useLanguage();
   const { 
     analyzeFace, 
     isLoading: aiLoading, 
@@ -79,7 +80,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
         symmetry: 'Good',
         proportions: 'Balanced'
       },
-      description: 'Well-balanced proportions suit most hairstyles',
+      description: t('faceShape.Oval', 'Standard face shape, suitable for almost all hairstyles'),
       isMock: true
     };
     
@@ -89,27 +90,28 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
 
   // 简单的面部分析处理函数
   const processFaceAnalysis = (result) => {
+    const faceShape = result.faceShape || 'Oval';
     return {
-      faceShape: result.faceShape || 'Oval',
+      faceShape: faceShape,
       features: {
         confidence: result.confidence || '85%',
         symmetry: result.features?.symmetry || 'Good',
         proportions: result.features?.proportions || 'Balanced'
       },
-      description: getFaceShapeDescription(result.faceShape),
+      description: getFaceShapeDescription(faceShape),
       isMock: result.isMock || false
     };
   };
 
   const getFaceShapeDescription = (faceShape) => {
     const descriptions = {
-      'Oval': 'Well-balanced proportions suit most hairstyles',
-      'Round': 'Soft features benefit from styles that add length',
-      'Square': 'Strong jawline pairs well with softening styles',
-      'Heart': 'Wider forehead balanced by styles with volume at chin',
-      'Long': 'Elongated features work with styles that add width'
+      'Oval': t('faceShape.Oval', 'Standard face shape, suitable for almost all hairstyles'),
+      'Round': t('faceShape.Round', 'Face length and width are similar, need to elongate face shape through hairstyle'),
+      'Square': t('faceShape.Square', 'Obvious jaw angle, need to soften contours through hairstyle'),
+      'Heart': t('faceShape.Heart', 'Wider forehead, sharper chin, need to balance upper and lower proportions'),
+      'Long': t('faceShape.Long', 'Face length is significantly greater than face width, need to increase width through hairstyle')
     };
-    return descriptions[faceShape] || 'Versatile face shape suitable for various styles';
+    return descriptions[faceShape] || t('faceShape.default', 'Versatile face shape suitable for various styles');
   };
 
   const getFaceShapeIcon = (shape) => {
@@ -129,9 +131,9 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
           <div className="flex items-center gap-3 text-orange-600">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
             <div>
-              <div className="font-medium">AI is analyzing facial features...</div>
+              <div className="font-medium">{t('analysis.analyzing', 'AI is analyzing facial features...')}</div>
               <div className="text-sm text-orange-500">
-                Analyzing your facial features to recommend the perfect hairstyle...
+                {t('analysis.detecting', 'Analyzing your facial features to recommend the perfect hairstyle...')}
               </div>
             </div>
           </div>
@@ -142,9 +144,9 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
               <div className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full animate-pulse"></div>
             </div>
             <div className="flex justify-between text-xs text-gray-500">
-              <span>Processing image</span>
-              <span>Analyzing features</span>
-              <span>Generating results</span>
+              <span>{t('analysis.processingImage', 'Processing image')}</span>
+              <span>{t('analysis.analyzingFeatures', 'Analyzing features')}</span>
+              <span>{t('analysis.generatingResults', 'Generating results')}</span>
             </div>
           </div>
 
@@ -154,7 +156,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
               onClick={handleCancel}
               className="text-sm text-gray-500 hover:text-gray-700 underline"
             >
-              Cancel Analysis
+              {t('analysis.cancel', 'Cancel Analysis')}
             </button>
           </div>
         </div>
@@ -168,7 +170,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
           <div className="flex items-center gap-3 text-red-600">
             <AlertCircle className="w-6 h-6" />
             <div className="flex-1">
-              <div className="font-medium">Analysis failed</div>
+              <div className="font-medium">{t('analysis.failed', 'Analysis failed')}</div>
               <div className="text-sm text-red-500 mt-1">{aiError}</div>
             </div>
           </div>
@@ -176,10 +178,10 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
           {/* 错误详情 - 显示具体的错误信息 */}
           <div className="bg-red-50 border border-red-200 rounded-lg p-3">
             <div className="text-sm text-red-700">
-              <div className="font-medium mb-1">Error Details:</div>
+              <div className="font-medium mb-1">{t('analysis.errorDetails', 'Error Details:')}</div>
               <div className="font-mono text-xs">
                 {aiError.includes('LanguageModel') ? 
-                  "Failed to execute 'prompt' on 'LanguageModel': Required member is undefined." 
+                  t('analysis.languageModelError', "Failed to execute 'prompt' on 'LanguageModel': Required member is undefined.") 
                   : aiError
                 }
               </div>
@@ -193,7 +195,10 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
               className="flex-1 flex items-center justify-center gap-2 bg-orange-600 text-white px-4 py-3 rounded-lg hover:bg-orange-700 transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
-              {retryCount > 0 ? `Try Again (${retryCount})` : 'Try Again'}
+              {retryCount > 0 ? 
+                t('analysis.tryAgainCount', 'Try Again ({count})', { count: retryCount }) 
+                : t('analysis.tryAgain', 'Try Again')
+              }
             </button>
             
             {showCancelOption && (
@@ -202,7 +207,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
                 className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-200 transition-colors border"
               >
                 <X className="w-4 h-4" />
-                Skip Analysis
+                {t('analysis.skip', 'Skip Analysis')}
               </button>
             )}
           </div>
@@ -210,12 +215,12 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
           {/* 故障排除提示 */}
           {!aiError.includes('cancelled') && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-800 mb-2">Troubleshooting Tips:</h4>
+              <h4 className="font-medium text-blue-800 mb-2">{t('analysis.troubleshootingTips', 'Troubleshooting Tips:')}</h4>
               <ul className="text-blue-700 text-sm space-y-1">
-                <li>• Ensure you're using Chrome 138+ on desktop</li>
-                <li>• Check that AI features are enabled in chrome://flags</li>
-                <li>• Try a different, clear front-facing photo</li>
-                <li>• Ensure good lighting in your photo</li>
+                <li>• {t('analysis.tip1', 'Ensure you\'re using Chrome 138+ on desktop')}</li>
+                <li>• {t('analysis.tip2', 'Check that AI features are enabled in chrome://flags')}</li>
+                <li>• {t('analysis.tip3', 'Try a different, clear front-facing photo')}</li>
+                <li>• {t('analysis.tip4', 'Ensure good lighting in your photo')}</li>
               </ul>
             </div>
           )}
@@ -229,8 +234,8 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
         <div className="flex items-center gap-3 text-green-600">
           <CheckCircle2 className="w-6 h-6" />
           <div>
-            <div className="font-medium">Analysis complete</div>
-            <div className="text-sm text-green-500">Your facial features have been identified</div>
+            <div className="font-medium">{t('analysis.complete', 'Analysis complete')}</div>
+            <div className="text-sm text-green-500">{t('analysis.featuresIdentified', 'Your facial features have been identified')}</div>
           </div>
         </div>
       );
@@ -241,8 +246,8 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
       <div className="flex items-center gap-3 text-gray-500">
         <User className="w-6 h-6" />
         <div>
-          <div className="font-medium">Ready for analysis</div>
-          <div className="text-sm">Click to start face analysis</div>
+          <div className="font-medium">{t('analysis.ready', 'Ready for analysis')}</div>
+          <div className="text-sm">{t('analysis.clickToStart', 'Click to start face analysis')}</div>
         </div>
       </div>
     );
@@ -262,21 +267,21 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
           {/* 脸型结果 */}
           <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Detection Results</h3>
+              <h3 className="text-lg font-semibold text-gray-800">{t('analysis.results', 'Detection Results')}</h3>
               <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${getFaceShapeColor(analysis.faceShape)}`}>
                 <span className="text-lg">{getFaceShapeIcon(analysis.faceShape)}</span>
-                <span className="font-medium">{analysis.faceShape} Face Shape</span>
+                <span className="font-medium">{analysis.faceShape} {t('analysis.faceShape', 'Face Shape')}</span>
               </div>
             </div>
             
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Face shape description</span>
+                <span className="text-gray-600">{t('analysis.faceShapeDescription', 'Face shape description')}</span>
                 <span className="text-gray-800 font-medium">{analysis.description}</span>
               </div>
               
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Analysis confidence</span>
+                <span className="text-gray-600">{t('analysis.confidence', 'Analysis confidence')}</span>
                 <span className="text-gray-800 font-medium">{analysis.features.confidence}</span>
               </div>
 
@@ -284,10 +289,10 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
                   <div className="flex items-center gap-2 text-yellow-800">
                     <Scan className="w-4 h-4" />
-                    <span className="text-sm font-medium">Using demo data</span>
+                    <span className="text-sm font-medium">{t('analysis.usingDemoData', 'Using demo data')}</span>
                   </div>
                   <p className="text-yellow-700 text-xs mt-1">
-                    Chrome AI is not available. Using sample data to demonstrate the experience.
+                    {t('analysis.demoDataDescription', 'Chrome AI is not available. Using sample data to demonstrate the experience.')}
                   </p>
                 </div>
               )}
@@ -298,10 +303,12 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
           <div className="bg-green-50 border border-green-200 rounded-xl p-4">
             <div className="flex items-center gap-2 text-green-800 mb-2">
               <CheckCircle2 className="w-4 h-4" />
-              <span className="font-medium">Analysis complete!</span>
+              <span className="font-medium">{t('analysis.completeShort', 'Analysis complete!')}</span>
             </div>
             <p className="text-green-700 text-sm">
-              Based on your {analysis.faceShape} face shape, suitable hairstyles will be recommended next.
+              {t('analysis.nextStep', 'Based on your {faceShape} face shape, suitable hairstyles will be recommended next.', {
+                faceShape: analysis.faceShape
+              })}
             </p>
           </div>
         </div>
@@ -310,9 +317,11 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
       {/* 技术支持说明 */}
       <div className="text-center text-xs text-gray-500">
         <p>
-          Powered by {isChromeAIAvailable ? 'Chrome Built-in AI' : 'Demo Mode'}
+          {t('analysis.poweredBy', 'Powered by {aiType}', {
+            aiType: isChromeAIAvailable ? t('analysis.chromeAI', 'Chrome Built-in AI') : t('analysis.demoMode', 'Demo Mode')
+          })}
         </p>
-        <p className="mt-1">Data is processed locally to protect your privacy</p>
+        <p className="mt-1">{t('analysis.dataProcessedLocally', 'Data is processed locally to protect your privacy')}</p>
       </div>
     </div>
   );

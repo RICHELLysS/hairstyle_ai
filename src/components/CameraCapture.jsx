@@ -72,8 +72,7 @@ const CameraCapture = ({ onImageCapture }) => {
   const [cameraLoading, setCameraLoading] = useState(false);
   const fileInputRef = useRef(null);
   const videoReadyTimeoutRef = useRef(null);
-  
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
   
   const {
     videoRef,
@@ -392,9 +391,9 @@ const CameraCapture = ({ onImageCapture }) => {
           <ul className="text-blue-700 text-sm text-left space-y-1">
             <li>• {t('camera.tip1', 'Choose a well-lit environment')}</li>
             <li>• {t('camera.tip2', 'Face the camera directly, keep face clear')}</li>
-            <li>• {t('camera.tip3', 'Avoid wearing hats or sunglasses')}</li>
+            {/*<li>• {t('camera.tip3', 'Avoid wearing hats or sunglasses')}</li>
             <li>• {t('camera.tip4', 'Maintain natural expression')}</li>
-            <li>• {t('camera.tip5', 'Use Chrome or Edge for best camera compatibility')}</li>
+            <li>• {t('camera.tip5', 'Use Chrome or Edge for best camera compatibility')}</li>*/}
           </ul>
         </div>
       )}

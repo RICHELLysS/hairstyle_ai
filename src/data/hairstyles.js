@@ -1,103 +1,172 @@
-export const hairstyles = [
+import { useLanguage } from '../hooks/useLanguage';
+
+// 创建发型数据的工厂函数，接受 t 函数作为参数
+export const createHairstyles = (t) => [
   {
     id: 1,
-    name: "Bob Cut",
+    name: t('hairstyle.bob.name', 'Bob Cut'),
     image: "/hairstyles/bob.jpg",
-    description: "Classic short hair, length between ears and shoulders, suitable for various face shapes",
+    description: t('hairstyle.bob.description', 'Classic short hair, length between ears and shoulders, suitable for various face shapes'),
     suitableFaceShapes: ["Oval", "Heart", "Long"],
-    difficulty: "Easy",
-    maintenance: "Low",
-    tags: ["Short", "Classic", "Easy Maintenance"],
-    features: ["Face shape modification", "Youthful look", "Suitable for workplace"]
+    difficulty: t('difficulty.easy', 'Easy'),
+    maintenance: t('maintenance.low', 'Low'),
+    tags: [
+      t('hairstyle.tag.short', 'Short'),
+      t('hairstyle.tag.classic', 'Classic'),
+      t('hairstyle.tag.easyMaintenance', 'Easy Maintenance')
+    ],
+    features: [
+      t('hairstyle.bob.feature1', 'Face shape modification'),
+      t('hairstyle.bob.feature2', 'Youthful look'),
+      t('hairstyle.bob.feature3', 'Suitable for workplace')
+    ]
   },
   {
     id: 2,
-    name: "Long Straight",
+    name: t('hairstyle.longStraight.name', 'Long Straight'),
     image: "/hairstyles/long-straight.jpg",
-    description: "Naturally smooth long straight hair, showing elegant temperament",
+    description: t('hairstyle.longStraight.description', 'Naturally smooth long straight hair, showing elegant temperament'),
     suitableFaceShapes: ["Oval", "Long", "Heart"],
-    difficulty: "Medium",
-    maintenance: "Medium",
-    tags: ["Long", "Straight", "Elegant"],
-    features: ["Elegant temperament", "Versatile", "Suitable for various occasions"]
+    difficulty: t('difficulty.medium', 'Medium'),
+    maintenance: t('maintenance.medium', 'Medium'),
+    tags: [
+      t('hairstyle.tag.long', 'Long'),
+      t('hairstyle.tag.straight', 'Straight'),
+      t('hairstyle.tag.elegant', 'Elegant')
+    ],
+    features: [
+      t('hairstyle.longStraight.feature1', 'Elegant temperament'),
+      t('hairstyle.longStraight.feature2', 'Versatile'),
+      t('hairstyle.longStraight.feature3', 'Suitable for various occasions')
+    ]
   },
   {
     id: 3,
-    name: "Wavy Hair",
+    name: t('hairstyle.wavy.name', 'Wavy Hair'),
     image: "/hairstyles/waves.jpg",
-    description: "Romantic wavy hair, increasing hair volume and three-dimensional sense",
+    description: t('hairstyle.wavy.description', 'Romantic wavy hair, increasing hair volume and three-dimensional sense'),
     suitableFaceShapes: ["Round", "Square", "Long"],
-    difficulty: "Medium",
-    maintenance: "High",
-    tags: ["Curly", "Romantic", "Feminine"],
-    features: ["Increase hair volume", "Modify face shape", "Strong fashion sense"]
+    difficulty: t('difficulty.medium', 'Medium'),
+    maintenance: t('maintenance.high', 'High'),
+    tags: [
+      t('hairstyle.tag.curly', 'Curly'),
+      t('hairstyle.tag.romantic', 'Romantic'),
+      t('hairstyle.tag.feminine', 'Feminine')
+    ],
+    features: [
+      t('hairstyle.wavy.feature1', 'Increase hair volume'),
+      t('hairstyle.wavy.feature2', 'Modify face shape'),
+      t('hairstyle.wavy.feature3', 'Strong fashion sense')
+    ]
   },
   {
     id: 4,
-    name: "Lob Cut",
+    name: t('hairstyle.lob.name', 'Lob Cut'),
     image: "/hairstyles/lob.jpg",
-    description: "Hair length at shoulder position, combining the crispness of short hair and the softness of long hair",
+    description: t('hairstyle.lob.description', 'Hair length at shoulder position, combining the crispness of short hair and the softness of long hair'),
     suitableFaceShapes: ["Oval", "Round", "Heart"],
-    difficulty: "Easy",
-    maintenance: "Low",
-    tags: ["Medium Length", "Popular", "Versatile"],
-    features: ["Fashionable", "Easy maintenance", "Suitable for various ages"]
+    difficulty: t('difficulty.easy', 'Easy'),
+    maintenance: t('maintenance.low', 'Low'),
+    tags: [
+      t('hairstyle.tag.mediumLength', 'Medium Length'),
+      t('hairstyle.tag.popular', 'Popular'),
+      t('hairstyle.tag.versatile', 'Versatile')
+    ],
+    features: [
+      t('hairstyle.lob.feature1', 'Fashionable'),
+      t('hairstyle.lob.feature2', 'Easy maintenance'),
+      t('hairstyle.lob.feature3', 'Suitable for various ages')
+    ]
   },
   {
     id: 5,
-    name: "Pixie Cut",
+    name: t('hairstyle.pixie.name', 'Pixie Cut'),
     image: "/hairstyles/pixie.jpg",
-    description: "Ultra-short hairstyle, highlighting facial contours, showing personality",
+    description: t('hairstyle.pixie.description', 'Ultra-short hairstyle, highlighting facial contours, showing personality'),
     suitableFaceShapes: ["Oval", "Heart"],
-    difficulty: "Hard",
-    maintenance: "High",
-    tags: ["Ultra Short", "Personality", "Fashion"],
-    features: ["Highlight facial features", "Show personality", "Refreshing and neat"]
+    difficulty: t('difficulty.hard', 'Hard'),
+    maintenance: t('maintenance.high', 'High'),
+    tags: [
+      t('hairstyle.tag.ultraShort', 'Ultra Short'),
+      t('hairstyle.tag.personality', 'Personality'),
+      t('hairstyle.tag.fashion', 'Fashion')
+    ],
+    features: [
+      t('hairstyle.pixie.feature1', 'Highlight facial features'),
+      t('hairstyle.pixie.feature2', 'Show personality'),
+      t('hairstyle.pixie.feature3', 'Refreshing and neat')
+    ]
   },
   {
     id: 6,
-    name: "French Bangs",
+    name: t('hairstyle.frenchBangs.name', 'French Bangs'),
     image: "/hairstyles/french-bangs.jpg",
-    description: "Casual and casual bangs, adding fashion sense with various hairstyles",
+    description: t('hairstyle.frenchBangs.description', 'Casual and casual bangs, adding fashion sense with various hairstyles'),
     suitableFaceShapes: ["Round", "Square", "Long"],
-    difficulty: "Medium",
-    maintenance: "Medium",
-    tags: ["Bangs", "French", "Fashion"],
-    features: ["Modify forehead", "Anti-aging", "Increase fashion sense"]
+    difficulty: t('difficulty.medium', 'Medium'),
+    maintenance: t('maintenance.medium', 'Medium'),
+    tags: [
+      t('hairstyle.tag.bangs', 'Bangs'),
+      t('hairstyle.tag.french', 'French'),
+      t('hairstyle.tag.fashion', 'Fashion')
+    ],
+    features: [
+      t('hairstyle.frenchBangs.feature1', 'Modify forehead'),
+      t('hairstyle.frenchBangs.feature2', 'Anti-aging'),
+      t('hairstyle.frenchBangs.feature3', 'Increase fashion sense')
+    ]
   },
   {
     id: 7,
-    name: "Layered Long Hair",
+    name: t('hairstyle.layeredLong.name', 'Layered Long Hair'),
     image: "/hairstyles/layered-long.jpg",
-    description: "Long hair with a sense of layers, increasing the dynamics and three-dimensional sense of the hairstyle",
+    description: t('hairstyle.layeredLong.description', 'Long hair with a sense of layers, increasing the dynamics and three-dimensional sense of the hairstyle'),
     suitableFaceShapes: ["Round", "Square", "Oval"],
-    difficulty: "Medium",
-    maintenance: "Medium",
-    tags: ["Long", "Layered", "Three-dimensional"],
-    features: ["Increase dynamics", "Modify face shape", "Show hair volume"]
+    difficulty: t('difficulty.medium', 'Medium'),
+    maintenance: t('maintenance.medium', 'Medium'),
+    tags: [
+      t('hairstyle.tag.long', 'Long'),
+      t('hairstyle.tag.layered', 'Layered'),
+      t('hairstyle.tag.threeDimensional', 'Three-dimensional')
+    ],
+    features: [
+      t('hairstyle.layeredLong.feature1', 'Increase dynamics'),
+      t('hairstyle.layeredLong.feature2', 'Modify face shape'),
+      t('hairstyle.layeredLong.feature3', 'Show hair volume')
+    ]
   },
   {
     id: 8,
-    name: "Vintage Curls",
+    name: t('hairstyle.vintageCurls.name', 'Vintage Curls'),
     image: "/hairstyles/vintage-curl.jpg",
-    description: "Small curly hair in retro style, showing retro charm",
+    description: t('hairstyle.vintageCurls.description', 'Small curly hair in retro style, showing retro charm'),
     suitableFaceShapes: ["Oval", "Long"],
-    difficulty: "Hard",
-    maintenance: "High",
-    tags: ["Curly", "Vintage", "Personality"],
-    features: ["Retro style", "Show personality", "Suitable for special occasions"]
+    difficulty: t('difficulty.hard', 'Hard'),
+    maintenance: t('maintenance.high', 'High'),
+    tags: [
+      t('hairstyle.tag.curly', 'Curly'),
+      t('hairstyle.tag.vintage', 'Vintage'),
+      t('hairstyle.tag.personality', 'Personality')
+    ],
+    features: [
+      t('hairstyle.vintageCurls.feature1', 'Retro style'),
+      t('hairstyle.vintageCurls.feature2', 'Show personality'),
+      t('hairstyle.vintageCurls.feature3', 'Suitable for special occasions')
+    ]
   }
 ];
 
 // 根据脸型推荐发型
-export const getRecommendedHairstyles = (faceShape) => {
+export const getRecommendedHairstyles = (faceShape, t) => {
+  const hairstyles = createHairstyles(t);
   return hairstyles.filter(style => 
     style.suitableFaceShapes.includes(faceShape)
   );
 };
 
 // 获取所有标签
-export const getAllTags = () => {
+export const getAllTags = (t) => {
+  const hairstyles = createHairstyles(t);
   const allTags = new Set();
   hairstyles.forEach(style => {
     style.tags.forEach(tag => allTags.add(tag));
@@ -106,17 +175,30 @@ export const getAllTags = () => {
 };
 
 // 获取发型难度选项
-export const difficultyOptions = [
-  { value: "Easy", label: "Easy Maintenance" },
-  { value: "Medium", label: "Medium Maintenance" },
-  { value: "Hard", label: "High Maintenance" }
+export const getDifficultyOptions = (t) => [
+  { value: t('difficulty.easy', 'Easy'), label: t('difficulty.easyMaintenance', 'Easy Maintenance') },
+  { value: t('difficulty.medium', 'Medium'), label: t('difficulty.mediumMaintenance', 'Medium Maintenance') },
+  { value: t('difficulty.hard', 'Hard'), label: t('difficulty.highMaintenance', 'High Maintenance') }
 ];
 
 // 脸型描述信息
-export const faceShapeDescriptions = {
-  "Oval": "Standard face shape, suitable for almost all hairstyles",
-  "Round": "Face length and width are similar, need to elongate face shape through hairstyle",
-  "Square": "Obvious jaw angle, need to soften contours through hairstyle",
-  "Heart": "Wider forehead, sharper chin, need to balance upper and lower proportions",
-  "Long": "Face length is significantly greater than face width, need to increase width through hairstyle"
+export const getFaceShapeDescriptions = (t) => ({
+  "Oval": t('faceShape.Oval', 'Standard face shape, suitable for almost all hairstyles'),
+  "Round": t('faceShape.Round', 'Face length and width are similar, need to elongate face shape through hairstyle'),
+  "Square": t('faceShape.Square', 'Obvious jaw angle, need to soften contours through hairstyle'),
+  "Heart": t('faceShape.Heart', 'Wider forehead, sharper chin, need to balance upper and lower proportions'),
+  "Long": t('faceShape.Long', 'Face length is significantly greater than face width, need to increase width through hairstyle')
+});
+
+// 自定义 Hook 用于在组件中使用发型数据
+export const useHairstyles = () => {
+  const { t } = useLanguage();
+  
+  return {
+    hairstyles: createHairstyles(t),
+    getRecommendedHairstyles: (faceShape) => getRecommendedHairstyles(faceShape, t),
+    getAllTags: () => getAllTags(t),
+    difficultyOptions: getDifficultyOptions(t),
+    faceShapeDescriptions: getFaceShapeDescriptions(t)
+  };
 };

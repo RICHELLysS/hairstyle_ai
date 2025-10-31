@@ -1,20 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Filter, Heart, Star, Zap, CheckCircle2 } from 'lucide-react';
-import { hairstyles, getRecommendedHairstyles, getAllTags, difficultyOptions, faceShapeDescriptions } from '../data/hairstyles';
+import { useHairstyles } from '../data/hairstyles';
 import useLanguage from '../hooks/useLanguage';
 
 const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
-  const [selectedRecommendation, setSelectedRecommendation] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('');
   const [favorites, setFavorites] = useState(new Set());
   
   const { t } = useLanguage();
+  const { 
+    hairstyles, 
+    getRecommendedHairstyles, 
+    getAllTags, 
+    difficultyOptions, 
+    faceShapeDescriptions 
+  } = useHairstyles();
 
   // 获取推荐发型
   const recommendedHairstyles = useMemo(() => {
     return getRecommendedHairstyles(faceAnalysis.faceShape);
-  }, [faceAnalysis.faceShape]);
+  }, [faceAnalysis.faceShape, getRecommendedHairstyles]);
 
   // 过滤发型
   const filteredHairstyles = useMemo(() => {
@@ -36,15 +43,15 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
       );
     }
 
-    // 推荐程度过滤
-    if (selectedRecommendation) {
+    // 难度过滤
+    if (selectedDifficulty) {
       filtered = filtered.filter(style =>
-        style.difficulty === selectedRecommendation
+        style.difficulty === selectedDifficulty
       );
     }
 
     return filtered;
-  }, [searchTerm, selectedTags, selectedRecommendation]);
+  }, [searchTerm, selectedTags, selectedDifficulty, hairstyles]);
 
   // 切换标签选择
   const toggleTag = (tag) => {
@@ -73,21 +80,21 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
   const allTags = getAllTags();
 
   // 获取推荐程度图标
-  const getRecommendationIcon = (level) => {
+  const getDifficultyIcon = (level) => {
     switch (level) {
-      case 'Highly Recommended': return <Star className="w-3 h-3" />;
-      case 'Recommended': return <CheckCircle2 className="w-3 h-3" />;
-      case 'Moderate': return <Zap className="w-3 h-3" />;
+      case t('difficulty.easy', 'Easy'): return <CheckCircle2 className="w-3 h-3" />;
+      case t('difficulty.medium', 'Medium'): return <Zap className="w-3 h-3" />;
+      case t('difficulty.hard', 'Hard'): return <Star className="w-3 h-3" />;
       default: return <Star className="w-3 h-3" />;
     }
   };
 
   // 获取推荐程度颜色
-  const getRecommendationColor = (level) => {
+  const getDifficultyColor = (level) => {
     switch (level) {
-      case 'Highly Recommended': return 'text-orange-600 bg-orange-50 border-orange-200';
-      case 'Recommended': return 'text-green-600 bg-green-50 border-green-200';
-      case 'Moderate': return 'text-blue-600 bg-blue-50 border-blue-200';
+      case t('difficulty.easy', 'Easy'): return 'text-green-600 bg-green-50 border-green-200';
+      case t('difficulty.medium', 'Medium'): return 'text-blue-600 bg-blue-50 border-blue-200';
+      case t('difficulty.hard', 'Hard'): return 'text-orange-600 bg-orange-50 border-orange-200';
       default: return 'text-gray-600 bg-gray-50 border-gray-200';
     }
   };
@@ -96,16 +103,18 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          Choose Your Favorite Hairstyle
+          {t('gallery.title', 'Choose Your Favorite Hairstyle')}
         </h2>
       </div>
 
-      {/* 脸型信息卡片 - 改为橙色主题 */}
+      {/* 脸型信息卡片 */}
       <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-200">
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <h3 className="font-semibold text-orange-800 mb-2">
-              Your Face Shape: {faceAnalysis.faceShape}
+              {t('gallery.yourFaceShape', 'Your Face Shape: {faceShape}', {
+                faceShape: faceAnalysis.faceShape
+              })}
             </h3>
             <p className="text-orange-700 text-sm">
               {faceShapeDescriptions[faceAnalysis.faceShape]}
@@ -116,7 +125,7 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
               {recommendedHairstyles.length}
             </div>
             <div className="text-orange-600 text-sm">
-              Recommended Styles
+              {t('gallery.recommendedStyles', 'Recommended Styles')}
             </div>
           </div>
         </div>
@@ -129,7 +138,7 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search hairstyle names, types..."
+            placeholder={t('gallery.search', 'Search hairstyle names, types...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -140,7 +149,7 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Filter className="w-4 h-4" />
-            <span>Filter by tag:</span>
+            <span>{t('gallery.filterByTag', 'Filter by tag:')}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {allTags.map(tag => (
@@ -159,34 +168,34 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
           </div>
         </div>
 
-        {/* 推荐程度筛选 */}
+        {/* 难度筛选 */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Star className="w-4 h-4" />
-            <span>Filter by recommendation level:</span>
+            <span>{t('gallery.filterByDifficulty', 'Filter by difficulty:')}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setSelectedRecommendation('')}
+              onClick={() => setSelectedDifficulty('')}
               className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                !selectedRecommendation
+                !selectedDifficulty
                   ? 'bg-orange-600 text-white border-orange-600'
                   : 'bg-white text-gray-700 border-gray-300 hover:border-orange-300'
               }`}
             >
-              All
+              {t('gallery.all', 'All')}
             </button>
             {difficultyOptions.map(option => (
               <button
                 key={option.value}
-                onClick={() => setSelectedRecommendation(option.value)}
+                onClick={() => setSelectedDifficulty(option.value)}
                 className={`px-3 py-1 rounded-full text-sm border transition-colors flex items-center gap-1 ${
-                  selectedRecommendation === option.value
+                  selectedDifficulty === option.value
                     ? 'bg-orange-600 text-white border-orange-600'
                     : 'bg-white text-gray-700 border-gray-300 hover:border-orange-300'
                 }`}
               >
-                {getRecommendationIcon(option.value)}
+                {getDifficultyIcon(option.value)}
                 {option.label}
               </button>
             ))}
@@ -206,14 +215,12 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
               onClick={() => onHairstyleSelect(hairstyle)}
               className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden cursor-pointer transform transition-all hover:scale-105 hover:shadow-lg hover:border-orange-300 group p-6"
             >
-              {/* 移除图片区域，只保留文字内容 */}
-              
               {/* 推荐标签 */}
               {isRecommended && (
                 <div className="mb-3">
                   <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit">
                     <CheckCircle2 className="w-3 h-3" />
-                    Recommended
+                    {t('gallery.recommended', 'Recommended')}
                   </div>
                 </div>
               )}
@@ -240,10 +247,10 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
                 {hairstyle.description}
               </p>
 
-              {/* 推荐程度标签 */}
+              {/* 难度标签 */}
               <div className="mb-3">
-                <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit border ${getRecommendationColor(hairstyle.difficulty)}`}>
-                  {getRecommendationIcon(hairstyle.difficulty)}
+                <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit border ${getDifficultyColor(hairstyle.difficulty)}`}>
+                  {getDifficultyIcon(hairstyle.difficulty)}
                   {hairstyle.difficulty}
                 </div>
               </div>
@@ -279,19 +286,22 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
         <div className="text-center py-12">
           <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-600 mb-2">
-            No matching hairstyles found
+            {t('gallery.noResults', 'No matching hairstyles found')}
           </h3>
           <p className="text-gray-500">
-            Try adjusting search or filter conditions
+            {t('gallery.tryAdjusting', 'Try adjusting search or filter conditions')}
           </p>
         </div>
       )}
 
       {/* 统计信息 */}
       <div className="text-center text-sm text-gray-500">
-        Showing {filteredHairstyles.length} of {hairstyles.length} hairstyles
-        {selectedTags.length > 0 && ` · ${selectedTags.length} tags selected`}
-        {selectedRecommendation && ` · Recommendation: ${selectedRecommendation}`}
+        {t('gallery.showingResults', 'Showing {count} of {total} hairstyles', {
+          count: filteredHairstyles.length,
+          total: hairstyles.length
+        })}
+        {selectedTags.length > 0 && ` · ${t('gallery.tagsSelected', '{count} tags selected', { count: selectedTags.length })}`}
+        {selectedDifficulty && ` · ${t('gallery.difficultyLevel', 'Difficulty: {level}', { level: selectedDifficulty })}`}
       </div>
     </div>
   );
