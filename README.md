@@ -22,7 +22,7 @@ A privacy-focused web application that provides personalized hairstyle recommend
 - Chrome AI features enabled via chrome://flags
 - (Optional) Camera access for photo capture
 
-## Usage
+## Workflow
 
 1. **Capture Photo**: Upload or take a front-facing photo
 2. **Face Analysis**: AI analyzes facial features to determine face shape
