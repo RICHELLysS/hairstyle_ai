@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, RotateCcw, Circle, X, AlertCircle } from 'lucide-react';
 import { useCamera } from '../hooks/useCamera';
+import useLanguage from '../hooks/useLanguage';
 
 // 简单的图片压缩工具函数
 const compressImage = async (blob, maxWidth = 800, quality = 0.7) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     
-    img.onerror = () => reject(new Error('图片加载失败'));
+    img.onerror = () => reject(new Error('Image loading failed'));
     img.onload = () => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -27,7 +28,7 @@ const compressImage = async (blob, maxWidth = 800, quality = 0.7) => {
           if (compressedBlob) {
             resolve(compressedBlob);
           } else {
-            reject(new Error('图片压缩失败'));
+            reject(new Error('Image compression failed'));
           }
         },
         'image/jpeg',
@@ -42,11 +43,11 @@ const compressImage = async (blob, maxWidth = 800, quality = 0.7) => {
 // 图片验证函数
 const validateImage = (file) => {
   if (!file.type.startsWith('image/')) {
-    return { valid: false, error: '请选择图片文件（JPEG、PNG等）' };
+    return { valid: false, error: 'Please select an image file (JPEG, PNG, etc.)' };
   }
   
   if (file.size > 10 * 1024 * 1024) {
-    return { valid: false, error: '图片大小不能超过10MB' };
+    return { valid: false, error: 'Image size cannot exceed 10MB' };
   }
   
   return { valid: true };
@@ -58,6 +59,8 @@ const CameraCapture = ({ onImageCapture }) => {
   const [error, setError] = useState(null);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const fileInputRef = useRef(null);
+  
+  const { t } = useLanguage();
   
   const {
     videoRef,
@@ -84,10 +87,9 @@ const CameraCapture = ({ onImageCapture }) => {
   const handleStartCamera = async () => {
     try {
       setError(null);
-      setIsVideoReady(true);
+      setIsVideoReady(false); // 修正：应该初始化为false
       setMode('camera');
       
-      // 给界面一点时间更新后再启动摄像头
       await new Promise(resolve => setTimeout(resolve, 100));
       
       await startCamera();
@@ -125,7 +127,7 @@ const CameraCapture = ({ onImageCapture }) => {
       console.log('Attempting to take photo...');
       
       if (!isVideoReady) {
-        throw new Error('摄像头尚未就绪，请等待视频加载完成');
+        throw new Error('Camera is not ready, please wait for video to load');
       }
 
       const photoBlob = await takePhoto();
@@ -138,7 +140,7 @@ const CameraCapture = ({ onImageCapture }) => {
       handleStopCamera();
     } catch (err) {
       console.error('Photo capture error:', err);
-      setError('拍照失败: ' + err.message);
+      setError(t('camera.captureError', 'Photo capture failed: ') + err.message);
     }
   };
 
@@ -161,7 +163,7 @@ const CameraCapture = ({ onImageCapture }) => {
       
       setPreviewUrl(url);
     } catch (err) {
-      setError('图片处理失败: ' + err.message);
+      setError(t('camera.processingError', 'Image processing failed: ') + err.message);
       setMode(null);
     }
   };
@@ -179,7 +181,7 @@ const CameraCapture = ({ onImageCapture }) => {
         setPreviewUrl(null);
         setMode(null);
       } catch (err) {
-        setError('图片处理失败: ' + err.message);
+        setError(t('camera.processingError', 'Image processing failed: ') + err.message);
       }
     }
   };
@@ -206,15 +208,15 @@ const CameraCapture = ({ onImageCapture }) => {
 
   return (
     <div className="text-center">
-      <h2 className="text-2xl font-bold text-gray-800 mb-2">Step 1: Upload Photo</h2>
-      <p className="text-gray-600 mb-8">Take or upload a clear front-facing photo for AI face analysis</p>
+      <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('camera.title', 'Step 1: Upload Photo')}</h2>
+      <p className="text-gray-600 mb-8">{t('camera.subtitle', 'Take or upload a clear front-facing photo for AI face analysis')}</p>
 
       {/* 错误显示 */}
       {(error || cameraError) && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-start gap-2">
           <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
           <div className="text-left">
-            <div className="font-medium">错误</div>
+            <div className="font-medium">{t('common.error', 'Error')}</div>
             <div>{error || cameraError}</div>
           </div>
         </div>
@@ -228,7 +230,7 @@ const CameraCapture = ({ onImageCapture }) => {
             className="flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-full hover:bg-purple-700 transition-colors"
           >
             <Camera className="w-5 h-5" />
-            Take Photo
+            {t('camera.takePhoto', 'Take Photo')}
           </button>
           
           <button
@@ -236,7 +238,7 @@ const CameraCapture = ({ onImageCapture }) => {
             className="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-6 py-3 rounded-full hover:bg-gray-50 transition-colors"
           >
             <Upload className="w-5 h-5" />
-            Upload Photo
+            {t('camera.uploadPhoto', 'Upload Photo')}
           </button>
           
           <input
@@ -268,17 +270,27 @@ const CameraCapture = ({ onImageCapture }) => {
             muted
             className="w-full h-96 object-cover"
           />
-
+          
+          {/* 摄像头状态指示 */}
+          {!isVideoReady && isCameraActive && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+              <div className="text-white text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                <div>{t('camera.starting', 'Starting camera...')}</div>
+              </div>
+            </div>
+          )}
           
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
             <button
               onClick={handleTakePhoto}
+              disabled={!isVideoReady}
               className={`bg-white rounded-full p-4 shadow-lg transition-all ${
                 isVideoReady 
                   ? 'hover:bg-gray-100 cursor-pointer' 
                   : 'opacity-50 cursor-not-allowed'
               }`}
-              title={isVideoReady ? '拍照' : '摄像头尚未就绪'}
+              title={isVideoReady ? t('camera.takePhoto', 'Take Photo') : t('camera.cameraNotReady', 'Camera not ready')}
             >
               <Circle className="w-8 h-8 text-red-500" fill="currentColor" />
             </button>
@@ -302,7 +314,7 @@ const CameraCapture = ({ onImageCapture }) => {
               onClick={handleConfirmImage}
               className="bg-green-600 text-white px-8 py-3 rounded-full hover:bg-green-700 transition-colors"
             >
-              Use This Photo
+              {t('camera.useThisPhoto', 'Use This Photo')}
             </button>
             
             <button
@@ -310,7 +322,7 @@ const CameraCapture = ({ onImageCapture }) => {
               className="flex items-center gap-2 bg-gray-200 text-gray-700 px-6 py-3 rounded-full hover:bg-gray-300 transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
-              Retake
+              {t('camera.retake', 'Retake')}
             </button>
           </div>
         </div>
@@ -319,21 +331,14 @@ const CameraCapture = ({ onImageCapture }) => {
       {/* 使用提示 */}
       {!previewUrl && !isCameraActive && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-8 max-w-2xl mx-auto">
-          <h3 className="font-semibold text-blue-800 mb-2">Photo Tips</h3>
+          <h3 className="font-semibold text-blue-800 mb-2">{t('camera.tips', 'Photo Tips')}</h3>
           <ul className="text-blue-700 text-sm text-left space-y-1">
-            <li>• Choose a well-lit environment</li>
-<li>• Face the camera directly, keep face clear</li>
-            <li>• Avoid wearing hats or sunglasses</li>
-            <li>• Maintain natural expression</li>
-            <li>• Use Chrome or Edge for best camera compatibility</li>
+            <li>• {t('camera.tip1', 'Choose a well-lit environment')}</li>
+            <li>• {t('camera.tip2', 'Face the camera directly, keep face clear')}</li>
+            <li>• {t('camera.tip3', 'Avoid wearing hats or sunglasses')}</li>
+            <li>• {t('camera.tip4', 'Maintain natural expression')}</li>
+            <li>• {t('camera.tip5', 'Use Chrome or Edge for best camera compatibility')}</li>
           </ul>
-        </div>
-      )}
-
-      {/* 调试信息（开发时使用） */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-600">
-          调试信息: mode={mode}, isCameraActive={isCameraActive.toString()}, isVideoReady={isVideoReady.toString()}
         </div>
       )}
     </div>

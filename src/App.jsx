@@ -1,61 +1,12 @@
 import React, { useState } from 'react';
 import { Camera, Sparkles, Shield, WifiOff, ChevronLeft, ChevronRight } from 'lucide-react';
 import LanguageSelector from './components/LanguageSelector';
+import useLanguage from './hooks/useLanguage';
 import CameraCapture from './components/CameraCapture';
 import FaceAnalyzer from './components/FaceAnalyzer';
 import StyleGallery from './components/StyleGallery';
 import ResultsView from './components/ResultsView';
 import { useStorage } from './hooks/useStorage';
-
-// 简单的翻译函数
-const translations = {
-  en: {
-    app: {
-      title: "AI Hairstyle Advisor",
-      subtitle: "Using Chrome Built-in AI · Privacy Protection · Offline Available",
-      builtFor: "Built for Google Chrome Built-in AI Challenge 2025"
-    },
-    navigation: {
-      back: "Back",
-      next: "Next", 
-      restart: "Restart",
-      steps: {
-        camera: "Take Photo",
-        analysis: "AI Analysis", 
-        selection: "Browse Styles",
-        results: "Get Advice"
-      }
-    },
-    common: {
-      privacy: "Data Never Leaves Device",
-      offline: "Offline Available",
-      poweredBy: "Powered by {technology}"
-    }
-  },
-  zh: {
-    app: {
-      title: "AI发型顾问",
-      subtitle: "使用Chrome内置AI技术 · 保护隐私 · 离线可用",
-      builtFor: "Built for Google Chrome Built-in AI Challenge 2025"
-    },
-    navigation: {
-      back: "上一步",
-      next: "下一步",
-      restart: "重新开始", 
-      steps: {
-        camera: "拍照",
-        analysis: "AI分析",
-        selection: "选择发型",
-        results: "获取建议"
-      }
-    },
-    common: {
-      privacy: "数据不离设备",
-      offline: "离线可用", 
-      poweredBy: "技术支持: {technology}"
-    }
-  }
-};
 
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -63,34 +14,10 @@ function App() {
   const [faceAnalysis, setFaceAnalysis] = useState(null);
   const [selectedHairstyle, setSelectedHairstyle] = useState(null);
   const [recommendation, setRecommendation] = useState(null);
-  const [currentLanguage, setCurrentLanguage] = useState('en'); // 默认英文
   const { saveHistory } = useStorage();
-
-  // 简单翻译函数
-  const t = (key, params = {}) => {
-    const keys = key.split('.');
-    let value = translations[currentLanguage];
-    
-    for (const k of keys) {
-      value = value?.[k];
-      if (value === undefined) {
-        // 回退到英文
-        let fallbackValue = translations.en;
-        for (const fallbackKey of keys) {
-          fallbackValue = fallbackValue?.[fallbackKey];
-        }
-        value = fallbackValue || key;
-        break;
-      }
-    }
-
-    // 参数替换
-    if (typeof value === 'string' && params.technology) {
-      return value.replace('{technology}', params.technology);
-    }
-
-    return value;
-  };
+  
+  // 使用 useLanguage Hook - 移除不需要的 props
+  const { t, isTranslating, currentLanguage } = useLanguage();
 
   const handleImageCapture = (image) => {
     setUserImage(image);
@@ -137,15 +64,44 @@ function App() {
     }
   };
 
+  // 使用 t 函数获取步骤信息
   const steps = [
-    { number: 1, title: t('navigation.steps.camera'), description: "Upload or take photo" },
-    { number: 2, title: t('navigation.steps.analysis'), description: "AI analyzes face shape" },
-    { number: 3, title: t('navigation.steps.selection'), description: "Browse hairstyles" },
-    { number: 4, title: t('navigation.steps.results'), description: "Get recommendations" }
+    { 
+      number: 1, 
+      title: t('navigation.steps.camera'), 
+      description: t('step.camera.description', 'Upload or take photo') 
+    },
+    { 
+      number: 2, 
+      title: t('navigation.steps.analysis'), 
+      description: t('step.analysis.description', 'AI analyzes face shape') 
+    },
+    { 
+      number: 3, 
+      title: t('navigation.steps.selection'), 
+      description: t('step.selection.description', 'Browse hairstyles') 
+    },
+    { 
+      number: 4, 
+      title: t('navigation.steps.results'), 
+      description: t('step.results.description', 'Get recommendations') 
+    }
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+      {/* 全局翻译加载状态 */}
+      {isTranslating && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-700">
+              {t('common.translating', 'Translating to')} {currentLanguage}...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="glass-effect sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-4">
@@ -154,10 +110,10 @@ function App() {
               <Sparkles className="w-8 h-8 text-purple-600" />
               <div>
                 <h1 className="text-2xl font-bold gradient-text">
-                  {t('app.title')}
+                  {t('app.title', 'AI Hairstyle Advisor')}
                 </h1>
                 <p className="text-sm text-gray-600">
-                  {t('app.subtitle')}
+                  {t('app.subtitle', 'Using Chrome Built-in AI · Privacy Protection · Offline Available')}
                 </p>
               </div>
             </div>
@@ -166,18 +122,16 @@ function App() {
               <div className="flex items-center gap-4 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
                   <Shield className="w-4 h-4 text-green-600" />
-                  <span>{t('common.privacy')}</span>
+                  <span>{t('common.privacy', 'Data Never Leaves Device')}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <WifiOff className="w-4 h-4 text-blue-600" />
-                  <span>{t('common.offline')}</span>
+                  <span>{t('common.offline', 'Offline Available')}</span>
                 </div>
               </div>
               
-              <LanguageSelector 
-                currentLanguage={currentLanguage}
-                onLanguageChange={setCurrentLanguage}
-              />
+              {/* 移除错误的 props 传递 */}
+              <LanguageSelector />
             </div>
           </div>
         </div>
@@ -212,7 +166,9 @@ function App() {
                   }`}>
                     {step.title}
                   </div>
-                  <div className="text-xs text-gray-500 max-w-[120px]">{step.description}</div>
+                  <div className="text-xs text-gray-500 max-w-[120px]">
+                    {step.description}
+                  </div>
                 </div>
                 {index < steps.length - 1 && (
                   <div className={`w-12 h-0.5 ${
@@ -232,14 +188,14 @@ function App() {
             className="flex items-center gap-2 px-6 py-3 text-gray-600 hover:text-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
-            {t('navigation.back')}
+            {t('navigation.back', 'Back')}
           </button>
           
           <button
             onClick={handleRestart}
             className="px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors"
           >
-            {t('navigation.restart')}
+            {t('navigation.restart', 'Restart')}
           </button>
           
           <button
@@ -250,7 +206,7 @@ function App() {
               (currentStep === 3 && !selectedHairstyle)}
             className="flex items-center gap-2 px-6 py-3 text-purple-600 hover:text-purple-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
           >
-            {t('navigation.next')}
+            {t('navigation.next', 'Next')}
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
@@ -282,15 +238,21 @@ function App() {
               selectedHairstyle={selectedHairstyle}
               onRecommendationGenerated={handleRecommendationGenerated}
               onRestart={handleRestart}
-              currentLanguage={currentLanguage}
+              // 不需要传递 currentLanguage，组件内部会使用 useLanguage
             />
           )}
         </div>
 
         {/* Technical Info */}
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>✨ {t('common.poweredBy', { technology: 'Chrome Built-in AI' })} · 🛡️ {t('common.privacy')} · 📱 {t('common.offline')}</p>
-          <p className="mt-1">{t('app.builtFor')}</p>
+          <p>
+            ✨ {t('common.poweredBy', 'Powered by {technology}', { technology: 'Chrome Built-in AI' })} · 
+            🛡️ {t('common.privacy', 'Data Never Leaves Device')} · 
+            📱 {t('common.offline', 'Offline Available')}
+          </p>
+          <p className="mt-1">
+            {t('app.builtFor', 'Built for Google Chrome Built-in AI Challenge 2025')}
+          </p>
         </div>
       </div>
     </div>

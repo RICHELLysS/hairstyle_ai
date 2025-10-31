@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Filter, Heart, Clock, Zap, CheckCircle2 } from 'lucide-react';
 import { hairstyles, getRecommendedHairstyles, getAllTags, difficultyOptions, faceShapeDescriptions } from '../data/hairstyles';
+import useLanguage from '../hooks/useLanguage';
 
 const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
   const [favorites, setFavorites] = useState(new Set());
+  
+  const { t } = useLanguage();
 
   // 获取推荐发型
   const recommendedHairstyles = useMemo(() => {
@@ -72,9 +75,9 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
   // 获取难度图标
   const getDifficultyIcon = (difficulty) => {
     switch (difficulty) {
-      case '简单': return <Zap className="w-3 h-3" />;
-      case '中等': return <Clock className="w-3 h-3" />;
-      case '高': return <Filter className="w-3 h-3" />;
+      case t('difficulty.easy', 'Easy'): return <Zap className="w-3 h-3" />;
+      case t('difficulty.medium', 'Medium'): return <Clock className="w-3 h-3" />;
+      case t('difficulty.hard', 'Hard'): return <Filter className="w-3 h-3" />;
       default: return <Zap className="w-3 h-3" />;
     }
   };
@@ -82,22 +85,24 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
   // 获取难度颜色
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case '简单': return 'text-green-600 bg-green-50';
-      case '中等': return 'text-yellow-600 bg-yellow-50';
-      case '高': return 'text-red-600 bg-red-50';
+      case t('difficulty.easy', 'Easy'): return 'text-green-600 bg-green-50';
+      case t('difficulty.medium', 'Medium'): return 'text-yellow-600 bg-yellow-50';
+      case t('difficulty.hard', 'Hard'): return 'text-red-600 bg-red-50';
       default: return 'text-gray-600 bg-gray-50';
     }
   };
 
   return (
     <div className="space-y-6">
-      
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">第三步：选择喜欢的发型</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          {t('gallery.title', 'Step 3: Choose Your Favorite Hairstyle')}
+        </h2>
         <p className="text-blue-700 text-sm mt-1">
-           Based on your {faceAnalysis.faceShape} face shape, these hairstyles are recommended for you.
-           AI analyzes facial features to suggest the most flattering styles.
-  </p>
+          {t('gallery.subtitle', 'Based on your {faceShape} face shape, these hairstyles are recommended for you. AI analyzes facial features to suggest the most flattering styles.', {
+            faceShape: faceAnalysis.faceShape
+          })}
+        </p>
       </div>
 
       {/* 脸型信息卡片 */}
@@ -105,7 +110,7 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <h3 className="font-semibold text-purple-800 mb-2">
-              您的脸型: {faceAnalysis.faceShape}
+              {t('gallery.yourFaceShape', 'Your Face Shape')}: {faceAnalysis.faceShape}
             </h3>
             <p className="text-purple-700 text-sm">
               {faceShapeDescriptions[faceAnalysis.faceShape]}
@@ -115,7 +120,9 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
             <div className="text-2xl font-bold text-purple-600">
               {recommendedHairstyles.length}
             </div>
-            <div className="text-purple-600 text-sm">推荐发型</div>
+            <div className="text-purple-600 text-sm">
+              {t('gallery.recommendedStyles', 'Recommended Styles')}
+            </div>
           </div>
         </div>
       </div>
@@ -127,7 +134,7 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="搜索发型名称、类型..."
+            placeholder={t('gallery.searchPlaceholder', 'Search hairstyle names, types...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -138,7 +145,7 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Filter className="w-4 h-4" />
-            <span>按标签筛选:</span>
+            <span>{t('gallery.filterByTag', 'Filter by tag:')}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {allTags.map(tag => (
@@ -161,7 +168,7 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Clock className="w-4 h-4" />
-            <span>按难度筛选:</span>
+            <span>{t('gallery.filterByDifficulty', 'Filter by difficulty:')}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -172,7 +179,7 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
                   : 'bg-white text-gray-700 border-gray-300 hover:border-purple-300'
               }`}
             >
-              全部
+              {t('gallery.all', 'All')}
             </button>
             {difficultyOptions.map(option => (
               <button
@@ -217,7 +224,7 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
                   <div className="absolute top-3 left-3">
                     <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />
-                      推荐
+                      {t('gallery.recommended', 'Recommended')}
                     </div>
                   </div>
                 )}
@@ -286,16 +293,23 @@ const StyleGallery = ({ faceAnalysis, onHairstyleSelect }) => {
       {filteredHairstyles.length === 0 && (
         <div className="text-center py-12">
           <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">未找到匹配的发型</h3>
-          <p className="text-gray-500">尝试调整搜索条件或筛选条件</p>
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">
+            {t('gallery.noResults', 'No matching hairstyles found')}
+          </h3>
+          <p className="text-gray-500">
+            {t('gallery.tryAdjusting', 'Try adjusting search or filter conditions')}
+          </p>
         </div>
       )}
 
       {/* 统计信息 */}
       <div className="text-center text-sm text-gray-500">
-        显示 {filteredHairstyles.length} 个发型中的 {filteredHairstyles.length} 个
-        {selectedTags.length > 0 && ` · ${selectedTags.length} 个标签选中`}
-        {selectedDifficulty && ` · 难度: ${selectedDifficulty}`}
+        {t('gallery.showingResults', 'Showing {count} of {total} hairstyles', {
+          count: filteredHairstyles.length,
+          total: hairstyles.length
+        })}
+        {selectedTags.length > 0 && ` · ${selectedTags.length} ${t('gallery.tagsSelected', 'tags selected')}`}
+        {selectedDifficulty && ` · ${t('gallery.difficulty', 'Difficulty')}: ${selectedDifficulty}`}
       </div>
     </div>
   );

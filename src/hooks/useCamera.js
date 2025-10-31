@@ -13,15 +13,14 @@ export const useCamera = () => {
       setError(null);
       console.log('Starting camera...');
       
-      // 请求摄像头权限 - 简化配置提高兼容性
+      // 请求摄像头权限
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: 'user',
-          // 移除分辨率限制，让浏览器自动选择
           width: { ideal: 1280 },
           height: { ideal: 720 }
         },
-        audio: false // 明确关闭音频
+        audio: false
       });
       
       setStream(mediaStream);
@@ -52,7 +51,7 @@ export const useCamera = () => {
           
           // 设置超时，防止 onloadedmetadata 不触发
           setTimeout(() => {
-            if (video.readyState >= 1) { // HAVE_ENOUGH_DATA
+            if (video.readyState >= 1) {
               resolve(mediaStream);
             }
           }, 3000);
@@ -61,17 +60,17 @@ export const useCamera = () => {
       
       return mediaStream;
     } catch (err) {
-      console.error('摄像头启动失败:', err);
-      let errorMessage = '无法访问摄像头';
+      console.error('Camera startup failed:', err);
+      let errorMessage = 'Unable to access camera';
       
       if (err.name === 'NotAllowedError') {
-        errorMessage = '摄像头权限被拒绝，请在浏览器设置中允许摄像头访问';
+        errorMessage = 'Camera permission denied, please allow camera access in browser settings';
       } else if (err.name === 'NotFoundError') {
-        errorMessage = '未找到摄像头设备';
+        errorMessage = 'No camera device found';
       } else if (err.name === 'NotSupportedError') {
-        errorMessage = '浏览器不支持摄像头功能';
+        errorMessage = 'Browser does not support camera functionality';
       } else if (err.name === 'OverconstrainedError') {
-        errorMessage = '无法满足摄像头配置要求，请尝试其他浏览器';
+        errorMessage = 'Cannot meet camera configuration requirements, please try another browser';
       }
       
       setError(errorMessage);
@@ -96,21 +95,21 @@ export const useCamera = () => {
     }
   }, [stream]);
 
-  // 拍照 - 增强错误处理
+  // 拍照
   const takePhoto = useCallback(async (quality = 0.8) => {
     if (!videoRef.current) {
-      throw new Error('视频元素未就绪');
+      throw new Error('Video element not ready');
     }
 
     const video = videoRef.current;
     
     // 检查视频是否已准备好
-    if (video.readyState !== 4) { // HAVE_ENOUGH_DATA
-      throw new Error('视频尚未准备好，请稍后重试');
+    if (video.readyState !== 4) {
+      throw new Error('Video not ready yet, please try again later');
     }
 
     if (video.videoWidth === 0 || video.videoHeight === 0) {
-      throw new Error('视频流异常，请重新启动摄像头');
+      throw new Error('Video stream abnormal, please restart camera');
     }
 
     console.log('Taking photo, video dimensions:', video.videoWidth, 'x', video.videoHeight);
@@ -135,7 +134,7 @@ export const useCamera = () => {
               console.log('Photo captured, blob size:', blob.size);
               resolve(blob);
             } else {
-              reject(new Error('图片生成失败'));
+              reject(new Error('Image generation failed'));
             }
           },
           'image/jpeg',
@@ -144,7 +143,7 @@ export const useCamera = () => {
       });
     } catch (drawError) {
       console.error('Canvas draw error:', drawError);
-      throw new Error('拍照失败：无法处理视频帧');
+      throw new Error('Photo capture failed: unable to process video frame');
     }
   }, []);
 
@@ -153,13 +152,13 @@ export const useCamera = () => {
     return new Promise((resolve, reject) => {
       // 验证文件类型
       if (!file.type.startsWith('image/')) {
-        reject(new Error('请选择图片文件'));
+        reject(new Error('Please select an image file'));
         return;
       }
 
       // 验证文件大小（最大 10MB）
       if (file.size > 10 * 1024 * 1024) {
-        reject(new Error('图片大小不能超过10MB'));
+        reject(new Error('Image size cannot exceed 10MB'));
         return;
       }
 
@@ -169,52 +168,11 @@ export const useCamera = () => {
     });
   }, []);
 
-  // 压缩图片
-  const compressImage = useCallback((blob, maxWidth = 800, quality = 0.7) => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      
-      img.onerror = () => {
-        reject(new Error('图片加载失败'));
-      };
-      
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-
-          // 计算新尺寸
-          let { width, height } = img;
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          // 绘制压缩后的图片
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // 转换为 Blob
-          canvas.toBlob(
-            (compressedBlob) => {
-              if (compressedBlob) {
-                resolve(compressedBlob);
-              } else {
-                reject(new Error('图片压缩失败'));
-              }
-            },
-            'image/jpeg',
-            quality
-          );
-        } catch (error) {
-          reject(new Error('图片处理失败: ' + error.message));
-        }
-      };
-      
-      img.src = URL.createObjectURL(blob);
-    });
+  // 压缩图片 - 简化版本，使用统一的 imageUtils
+  const compressImage = useCallback(async (blob, maxWidth = 800, quality = 0.7) => {
+    // 导入统一的压缩函数
+    const { compressImage: compress } = await import('../utils/imageUtils');
+    return compress(blob, maxWidth, quality);
   }, []);
 
   return {

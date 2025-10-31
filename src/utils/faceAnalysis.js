@@ -13,8 +13,9 @@ export const processFaceAnalysis = (aiResponse) => {
     return {
       faceShape: aiResponse.faceShape,
       features: aiResponse.features,
-      description: faceShapeDescriptions[aiResponse.faceShape] || '未识别到特定脸型特征',
-      isMock: aiResponse.isMock || false
+      description: faceShapeDescriptions[aiResponse.faceShape] || 'No specific facial features detected',
+      isMock: aiResponse.isMock || false,
+      faceDetected: true
     };
   }
 
@@ -33,8 +34,8 @@ export const processFaceAnalysis = (aiResponse) => {
  * @returns {Object} 解析后的分析结果
  */
 const parseTextAnalysis = (text) => {
-  const faceShapes = ['椭圆形', '圆形', '方形', '心形', '长形'];
-  let detectedFaceShape = '椭圆形'; // 默认值
+  const faceShapes = ['Oval', 'Round', 'Square', 'Heart', 'Long'];
+  let detectedFaceShape = 'Oval'; // 默认值
   
   // 在文本中查找脸型关键词
   for (const shape of faceShapes) {
@@ -48,10 +49,11 @@ const parseTextAnalysis = (text) => {
     faceShape: detectedFaceShape,
     features: {
       confidence: '85%',
-      analysis: 'AI分析完成'
+      analysis: 'AI analysis completed'
     },
     description: faceShapeDescriptions[detectedFaceShape],
-    isMock: true
+    isMock: true,
+    faceDetected: true
   };
 };
 
@@ -60,33 +62,34 @@ const parseTextAnalysis = (text) => {
  * @returns {Object} 模拟分析结果
  */
 const getMockAnalysis = () => {
-  const faceShapes = ['椭圆形', '圆形', '方形', '心形', '长形'];
+  const faceShapes = ['Oval', 'Round', 'Square', 'Heart', 'Long'];
   const randomShape = faceShapes[Math.floor(Math.random() * faceShapes.length)];
   
   return {
     faceShape: randomShape,
     features: {
       confidence: (85 + Math.random() * 15).toFixed(1) + '%',
-      symmetry: '良好',
-      proportions: '标准'
+      symmetry: 'Good',
+      proportions: 'Standard'
     },
     description: faceShapeDescriptions[randomShape],
-    isMock: true
+    isMock: true,
+    faceDetected: true
   };
 };
 
 /**
  * 获取脸型图标
  * @param {string} faceShape - 脸型
- * @returns {string} 图标名称
+ * @returns {string} 图标
  */
 export const getFaceShapeIcon = (faceShape) => {
   const icons = {
-    '椭圆形': '○',
-    '圆形': '●',
-    '方形': '□',
-    '心形': '♥',
-    '长形': '▭'
+    'Oval': '○',
+    'Round': '●',
+    'Square': '□',
+    'Heart': '♥',
+    'Long': '▭'
   };
   return icons[faceShape] || '○';
 };
@@ -98,11 +101,11 @@ export const getFaceShapeIcon = (faceShape) => {
  */
 export const getFaceShapeColor = (faceShape) => {
   const colors = {
-    '椭圆形': 'text-green-600 bg-green-50 border-green-200',
-    '圆形': 'text-blue-600 bg-blue-50 border-blue-200',
-    '方形': 'text-purple-600 bg-purple-50 border-purple-200',
-    '心形': 'text-pink-600 bg-pink-50 border-pink-200',
-    '长形': 'text-orange-600 bg-orange-50 border-orange-200'
+    'Oval': 'text-green-600 bg-green-50 border-green-200',
+    'Round': 'text-blue-600 bg-blue-50 border-blue-200',
+    'Square': 'text-purple-600 bg-purple-50 border-purple-200',
+    'Heart': 'text-pink-600 bg-pink-50 border-pink-200',
+    'Long': 'text-orange-600 bg-orange-50 border-orange-200'
   };
   return colors[faceShape] || 'text-gray-600 bg-gray-50 border-gray-200';
 };

@@ -25,7 +25,7 @@ export const useStorage = () => {
         setSettings(JSON.parse(savedSettings));
       }
     } catch (error) {
-      console.error('加载本地存储数据失败:', error);
+      console.error('Failed to load local storage data:', error);
     }
   }, []);
 
@@ -35,8 +35,10 @@ export const useStorage = () => {
       const newHistory = [record, ...history.slice(0, 49)]; // 最多保存50条记录
       setHistory(newHistory);
       localStorage.setItem('hairstyle-ai-history', JSON.stringify(newHistory));
+      return true;
     } catch (error) {
-      console.error('保存历史记录失败:', error);
+      console.error('Failed to save history:', error);
+      return false;
     }
   }, [history]);
 
@@ -45,8 +47,10 @@ export const useStorage = () => {
     try {
       setHistory([]);
       localStorage.removeItem('hairstyle-ai-history');
+      return true;
     } catch (error) {
-      console.error('清空历史记录失败:', error);
+      console.error('Failed to clear history:', error);
+      return false;
     }
   }, []);
 
@@ -56,8 +60,10 @@ export const useStorage = () => {
       const updatedSettings = { ...settings, ...newSettings };
       setSettings(updatedSettings);
       localStorage.setItem('hairstyle-ai-settings', JSON.stringify(updatedSettings));
+      return true;
     } catch (error) {
-      console.error('更新设置失败:', error);
+      console.error('Failed to update settings:', error);
+      return false;
     }
   }, [settings]);
 
@@ -69,8 +75,10 @@ export const useStorage = () => {
         lastUpdated: new Date().toISOString()
       };
       localStorage.setItem('hairstyle-ai-user-preferences', JSON.stringify(userData));
+      return true;
     } catch (error) {
-      console.error('保存用户偏好失败:', error);
+      console.error('Failed to save user preferences:', error);
+      return false;
     }
   }, []);
 
@@ -80,67 +88,10 @@ export const useStorage = () => {
       const userData = localStorage.getItem('hairstyle-ai-user-preferences');
       return userData ? JSON.parse(userData) : null;
     } catch (error) {
-      console.error('加载用户偏好失败:', error);
+      console.error('Failed to load user preferences:', error);
       return null;
     }
   }, []);
-
-  // 保存图片到本地（可选功能）
-  const saveImageToStorage = useCallback(async (imageBlob, filename) => {
-    try {
-      // 将 Blob 转换为 Base64
-      const base64 = await blobToBase64(imageBlob);
-      const imageData = {
-        data: base64,
-        filename,
-        timestamp: new Date().toISOString()
-      };
-
-      // 获取现有图片库或创建新的
-      const existingLibrary = JSON.parse(localStorage.getItem('hairstyle-ai-image-library') || '[]');
-      const newLibrary = [imageData, ...existingLibrary.slice(0, 9)]; // 最多保存10张图片
-
-      localStorage.setItem('hairstyle-ai-image-library', JSON.stringify(newLibrary));
-      return true;
-    } catch (error) {
-      console.error('保存图片失败:', error);
-      return false;
-    }
-  }, []);
-
-  // 从本地存储加载图片
-  const loadImagesFromStorage = useCallback(() => {
-    try {
-      const imageLibrary = localStorage.getItem('hairstyle-ai-image-library');
-      return imageLibrary ? JSON.parse(imageLibrary) : [];
-    } catch (error) {
-      console.error('加载图片失败:', error);
-      return [];
-    }
-  }, []);
-
-  // Blob 转 Base64 工具函数
-  const blobToBase64 = (blob) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.readAsDataURL(blob);
-    });
-  };
-
-  // Base64 转 Blob 工具函数
-  const base64ToBlob = (base64) => {
-    const byteString = atob(base64.split(',')[1]);
-    const mimeString = base64.split(',')[0].split(':')[1].split(';')[0];
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i);
-    }
-    
-    return new Blob([ab], { type: mimeString });
-  };
 
   // 获取存储使用情况
   const getStorageUsage = useCallback(() => {
@@ -150,8 +101,7 @@ export const useStorage = () => {
     const keys = [
       'hairstyle-ai-history',
       'hairstyle-ai-settings',
-      'hairstyle-ai-user-preferences',
-      'hairstyle-ai-image-library'
+      'hairstyle-ai-user-preferences'
     ];
     
     keys.forEach(key => {
@@ -163,22 +113,58 @@ export const useStorage = () => {
     
     return {
       totalBytes: totalSize,
-      totalMB: (totalSize / (1024 * 1024)).toFixed(2)
+      totalMB: (totalSize / (1024 * 1024)).toFixed(2),
+      message: `Storage usage: ${(totalSize / (1024 * 1024)).toFixed(2)} MB`
     };
   }, []);
 
+  // 导出历史记录
+  const exportHistory = useCallback(() => {
+    try {
+      const dataStr = JSON.stringify(history, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      return URL.createObjectURL(dataBlob);
+    } catch (error) {
+      console.error('Failed to export history:', error);
+      return null;
+    }
+  }, [history]);
+
+  // 导入历史记录
+  const importHistory = useCallback((jsonData) => {
+    try {
+      const importedHistory = JSON.parse(jsonData);
+      if (Array.isArray(importedHistory)) {
+        setHistory(importedHistory);
+        localStorage.setItem('hairstyle-ai-history', JSON.stringify(importedHistory));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to import history:', error);
+      return false;
+    }
+  }, []);
+
   return {
+    // 数据
     history,
     settings,
+    
+    // 历史记录操作
     saveHistory,
     clearHistory,
+    exportHistory,
+    importHistory,
+    
+    // 设置操作
     updateSettings,
+    
+    // 用户偏好
     saveUserPreferences,
     loadUserPreferences,
-    saveImageToStorage,
-    loadImagesFromStorage,
-    getStorageUsage,
-    blobToBase64,
-    base64ToBlob
+    
+    // 工具函数
+    getStorageUsage
   };
 };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Download, Share2, RotateCcw, Star, Calendar, Bookmark } from 'lucide-react';
 import HairRecommender from './HairRecommender';
 import { useStorage } from '../hooks/useStorage';
+import useLanguage from '../hooks/useLanguage';
 
 const ResultsView = ({
   userImage,
@@ -13,6 +14,7 @@ const ResultsView = ({
   const [userImageUrl, setUserImageUrl] = useState('');
   const [recommendation, setRecommendation] = useState('');
   const { saveHistory } = useStorage();
+  const { t } = useLanguage();
 
   // 创建用户图片URL
   useEffect(() => {
@@ -36,15 +38,18 @@ const ResultsView = ({
       faceShape: faceAnalysis.faceShape,
       hairstyle: selectedHairstyle.name,
       recommendation: rec,
-      userImage: userImageUrl // 注意：这里实际应该存储base64或引用
+      userImage: userImageUrl
     });
   };
 
   // 分享结果
   const handleShare = async () => {
     const shareData = {
-      title: 'AI发型建议',
-      text: `基于我的${faceAnalysis.faceShape}脸型，AI推荐了${selectedHairstyle.name}发型！`,
+      title: t('results.shareTitle', 'AI Hairstyle Recommendation'),
+      text: t('results.shareText', 'Based on my {faceShape} face shape, AI recommended {hairstyle} hairstyle!', {
+        faceShape: faceAnalysis.faceShape,
+        hairstyle: selectedHairstyle.name
+      }),
       url: window.location.href
     };
 
@@ -52,13 +57,17 @@ const ResultsView = ({
       try {
         await navigator.share(shareData);
       } catch (err) {
-        console.log('分享取消:', err);
+        console.log('Share cancelled:', err);
       }
     } else {
       // 备用方案：复制到剪贴板
-      const text = `我的${faceAnalysis.faceShape}脸型适合${selectedHairstyle.name}发型！\n\n${recommendation?.substring(0, 100)}...`;
+      const text = t('results.clipboardText', 'My {faceShape} face shape is suitable for {hairstyle} hairstyle!\n\n{recommendation}...', {
+        faceShape: faceAnalysis.faceShape,
+        hairstyle: selectedHairstyle.name,
+        recommendation: recommendation?.substring(0, 100)
+      });
       navigator.clipboard.writeText(text).then(() => {
-        alert('建议已复制到剪贴板！');
+        alert(t('results.copiedToClipboard', 'Recommendation copied to clipboard!'));
       });
     }
   };
@@ -67,30 +76,32 @@ const ResultsView = ({
   const handleDownload = () => {
     // 创建可下载的内容
     const content = `
-AI发型建议报告
-===============================
+${t('results.reportTitle', 'AI Hairstyle Recommendation Report')}
+${'='.repeat(50)}
 
-脸型分析: ${faceAnalysis.faceShape}
-推荐发型: ${selectedHairstyle.name}
-推荐时间: ${new Date().toLocaleString()}
+${t('results.faceAnalysis', 'Face Analysis')}: ${faceAnalysis.faceShape}
+${t('results.recommendedHairstyle', 'Recommended Hairstyle')}: ${selectedHairstyle.name}
+${t('results.recommendationTime', 'Recommendation Time')}: ${new Date().toLocaleString()}
 
-详细建议:
+${t('results.detailedAdvice', 'Detailed Advice')}:
 ${recommendation}
 
-特点:
+${t('results.features', 'Features')}:
 ${selectedHairstyle.features.join(', ')}
 
-适合脸型:
-${selectedHairstyle.suitableFaceShapes.join(', ')}
+${t('results.suitableFaceShapes', 'Suitable Face Shapes')}:
+${selectedHairstyle.suitableFaceShapes?.join(', ') || 'N/A'}
 
-维护难度: ${selectedHairstyle.difficulty}
+${t('results.maintenanceDifficulty', 'Maintenance Difficulty')}: ${selectedHairstyle.difficulty}
     `.trim();
 
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `发型建议-${selectedHairstyle.name}.txt`;
+    a.download = t('results.filename', 'Hairstyle-Recommendation-{hairstyle}.txt', {
+      hairstyle: selectedHairstyle.name
+    });
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -101,8 +112,12 @@ ${selectedHairstyle.suitableFaceShapes.join(', ')}
     <div className="space-y-8">
       {/* 头部 */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">第四步：您的专属发型建议</h2>
-        <p className="text-gray-600">基于AI分析生成的个性化发型方案</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          {t('results.title', 'Step 4: Your Personalized Hairstyle Recommendation')}
+        </h2>
+        <p className="text-gray-600">
+          {t('results.subtitle', 'Personalized hairstyle plan generated based on AI analysis')}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -112,13 +127,13 @@ ${selectedHairstyle.suitableFaceShapes.join(', ')}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Star className="w-4 h-4 text-purple-600" />
-              您的照片
+              {t('results.yourPhoto', 'Your Photo')}
             </h3>
             <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
               {userImageUrl && (
                 <img
                   src={userImageUrl}
-                  alt="用户照片"
+                  alt={t('results.userPhotoAlt', 'User photo')}
                   className="w-full h-full object-cover"
                 />
               )}
@@ -129,15 +144,15 @@ ${selectedHairstyle.suitableFaceShapes.join(', ')}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-blue-600" />
-              脸型分析
+              {t('results.faceAnalysis', 'Face Analysis')}
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">检测脸型</span>
+                <span className="text-gray-600">{t('results.detectedFaceShape', 'Detected Face Shape')}</span>
                 <span className="font-medium text-gray-800">{faceAnalysis.faceShape}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">置信度</span>
+                <span className="text-gray-600">{t('results.confidence', 'Confidence')}</span>
                 <span className="font-medium text-gray-800">{faceAnalysis.features.confidence}</span>
               </div>
               <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
@@ -150,7 +165,7 @@ ${selectedHairstyle.suitableFaceShapes.join(', ')}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Bookmark className="w-4 h-4 text-green-600" />
-              选择发型
+              {t('results.selectedHairstyle', 'Selected Hairstyle')}
             </h3>
             <div className="space-y-4">
               <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
@@ -170,16 +185,18 @@ ${selectedHairstyle.suitableFaceShapes.join(', ')}
                 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">维护难度</span>
+                    <span className="text-gray-600">{t('results.maintenanceDifficulty', 'Maintenance Difficulty')}</span>
                     <span className="font-medium text-gray-800">{selectedHairstyle.difficulty}</span>
                   </div>
                   
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">适合脸型</span>
-                    <span className="font-medium text-gray-800">
-                      {selectedHairstyle.suitableFaceShapes.join(', ')}
-                    </span>
-                  </div>
+                  {selectedHairstyle.suitableFaceShapes && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">{t('results.suitableFaceShapes', 'Suitable Face Shapes')}</span>
+                      <span className="font-medium text-gray-800">
+                        {selectedHairstyle.suitableFaceShapes.join(', ')}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* 标签 */}
@@ -217,7 +234,7 @@ ${selectedHairstyle.suitableFaceShapes.join(', ')}
           className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-full hover:bg-green-700 transition-colors"
         >
           <Download className="w-4 h-4" />
-          下载建议
+          {t('results.download', 'Download Recommendation')}
         </button>
 
         <button
@@ -225,7 +242,7 @@ ${selectedHairstyle.suitableFaceShapes.join(', ')}
           className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-colors"
         >
           <Share2 className="w-4 h-4" />
-          分享结果
+          {t('results.share', 'Share Results')}
         </button>
 
         <button
@@ -233,7 +250,7 @@ ${selectedHairstyle.suitableFaceShapes.join(', ')}
           className="flex items-center gap-2 bg-gray-200 text-gray-700 px-6 py-3 rounded-full hover:bg-gray-300 transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
-          重新开始
+          {t('results.restart', 'Start Over')}
         </button>
       </div>
 
@@ -241,13 +258,13 @@ ${selectedHairstyle.suitableFaceShapes.join(', ')}
       <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
         <div className="flex items-center gap-2 text-yellow-800 mb-2">
           <Star className="w-4 h-4" />
-          <span className="font-medium">温馨提示</span>
+          <span className="font-medium">{t('results.importantNote', 'Important Note')}</span>
         </div>
         <ul className="text-yellow-700 text-sm space-y-1">
-          <li>• 此建议基于AI分析生成，仅供参考</li>
-          <li>• 实际效果可能因个人发质、脸型细节等因素有所不同</li>
-          <li>• 建议咨询专业发型师获取最适合您的发型方案</li>
-          <li>• 您的照片和数据分析完全在本地处理，保护隐私安全</li>
+          <li>• {t('results.note1', 'This recommendation is generated based on AI analysis and is for reference only')}</li>
+          <li>• {t('results.note2', 'Actual results may vary depending on hair texture, facial details, and other factors')}</li>
+          <li>• {t('results.note3', 'We recommend consulting with a professional hairstylist for the best hairstyle solution')}</li>
+          <li>• {t('results.note4', 'Your photos and data analysis are processed completely locally to protect your privacy')}</li>
         </ul>
       </div>
     </div>

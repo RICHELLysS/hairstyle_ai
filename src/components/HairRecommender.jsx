@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sparkles, Lightbulb, Scissors, Clock, Star, Zap } from 'lucide-react';
 import { useChromeAI } from '../hooks/useChromeAI';
+import useLanguage from '../hooks/useLanguage';
 
 const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGenerated }) => {
   const [recommendation, setRecommendation] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
   
+  const { t } = useLanguage();
   const { generateRecommendation: generateAISuggestion, isLoading } = useChromeAI();
 
   // 使用 useCallback 避免重复创建函数
@@ -14,7 +16,7 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
     // 检查必要的参数是否存在
     if (!faceAnalysis || !selectedHairstyle) {
       console.error('Missing required parameters:', { faceAnalysis, selectedHairstyle });
-      setError('缺少必要的信息，请确保已选择发型');
+      setError(t('recommender.missingInfo', 'Missing necessary information, please ensure you have selected a hairstyle'));
       return;
     }
 
@@ -26,17 +28,20 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
       const result = await generateAISuggestion(faceAnalysis, selectedHairstyle);
       console.log('Recommendation result:', result);
       
-      setRecommendation(result);
+      // 修正：检查 result 的结构
+      const recommendationText = typeof result === 'string' ? result : result.text;
+      
+      setRecommendation(recommendationText);
       if (onRecommendationGenerated) {
-        onRecommendationGenerated(result);
+        onRecommendationGenerated(recommendationText);
       }
     } catch (err) {
       console.error('Error generating recommendation:', err);
-      setError(err.message || '生成建议时出错，请重试');
+      setError(err.message || t('recommender.generationError', 'Error generating recommendation, please try again'));
     } finally {
       setIsGenerating(false);
     }
-  }, [faceAnalysis, selectedHairstyle, generateAISuggestion, onRecommendationGenerated]);
+  }, [faceAnalysis, selectedHairstyle, generateAISuggestion, onRecommendationGenerated, t]);
 
   // 修复 useEffect 依赖
   useEffect(() => {
@@ -45,15 +50,6 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
       handleGenerateRecommendation();
     }
   }, [faceAnalysis, selectedHairstyle, handleGenerateRecommendation, recommendation]);
-
-  // 添加调试信息
-  console.log('HairRecommender state:', {
-    faceAnalysis,
-    selectedHairstyle,
-    recommendation,
-    isGenerating,
-    error
-  });
 
   // 解析建议文本为结构化内容
   const parseRecommendation = (text) => {
@@ -101,10 +97,10 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
   // 获取章节标题
   const getSectionTitle = (section) => {
     const titles = {
-      reason: 'Why It Suits You',
-      maintenance: 'Maintenance Tips',
-      styling: 'Styling Suggestions',
-      caution: 'Things to Note'
+      reason: t('recommender.sections.reason', 'Why It Suits You'),
+      maintenance: t('recommender.sections.maintenance', 'Maintenance Tips'),
+      styling: t('recommender.sections.styling', 'Styling Suggestions'),
+      caution: t('recommender.sections.caution', 'Things to Note')
     };
     return titles[section];
   };
@@ -126,17 +122,21 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Sparkles className="w-6 h-6 text-purple-600" />
-          <h3 className="text-lg font-semibold text-gray-800">AI Hairstyle Recommendation</h3>
+          <h3 className="text-lg font-semibold text-gray-800">
+            {t('recommender.title', 'AI Hairstyle Recommendation')}
+          </h3>
         </div>
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
           <Lightbulb className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-          <h4 className="text-yellow-800 font-medium mb-2">信息不完整</h4>
+          <h4 className="text-yellow-800 font-medium mb-2">
+            {t('recommender.incompleteInfo', 'Incomplete Information')}
+          </h4>
           <p className="text-yellow-700">
             {!faceAnalysis && !selectedHairstyle 
-              ? '请先完成面部分析并选择发型' 
+              ? t('recommender.completeAnalysisFirst', 'Please complete face analysis and select a hairstyle first') 
               : !faceAnalysis 
-                ? '请先完成面部分析' 
-                : '请先选择发型'}
+                ? t('recommender.completeAnalysis', 'Please complete face analysis first') 
+                : t('recommender.selectHairstyle', 'Please select a hairstyle first')}
           </p>
         </div>
       </div>
@@ -147,7 +147,9 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Sparkles className="w-6 h-6 text-purple-600" />
-        <h3 className="text-lg font-semibold text-gray-800">AI Hairstyle Recommendation</h3>
+        <h3 className="text-lg font-semibold text-gray-800">
+          {t('recommender.title', 'AI Hairstyle Recommendation')}
+        </h3>
       </div>
 
       {/* 生成状态 */}
@@ -155,7 +157,7 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
         <div className="space-y-4">
           <div className="flex items-center gap-3 text-purple-600">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
-            <span>AI is generating personalized advice...</span>
+            <span>{t('recommender.generating', 'AI is generating personalized advice...')}</span>
           </div>
           
           {/* 加载动画 */}
@@ -173,14 +175,16 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-red-700 mb-2">
             <Lightbulb className="w-4 h-4" />
-            <span className="font-medium">Generation Failed</span>
+            <span className="font-medium">
+              {t('recommender.generationFailed', 'Generation Failed')}
+            </span>
           </div>
           <p className="text-red-600 text-sm">{error}</p>
           <button
             onClick={handleGenerateRecommendation}
             className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-colors"
           >
-            Try Again
+            {t('common.tryAgain', 'Try Again')}
           </button>
         </div>
       ) : recommendation ? (
@@ -218,7 +222,7 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
               className="flex items-center gap-2 mx-auto bg-purple-600 text-white px-6 py-3 rounded-full hover:bg-purple-700 transition-colors"
             >
               <Sparkles className="w-4 h-4" />
-              Regenerate Recommendation
+              {t('recommender.regenerate', 'Regenerate Recommendation')}
             </button>
           </div>
         </div>
@@ -226,15 +230,20 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
         /* 初始状态 */
         <div className="text-center py-8">
           <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h4 className="text-gray-600 font-medium mb-2">Ready to Generate Advice</h4>
+          <h4 className="text-gray-600 font-medium mb-2">
+            {t('recommender.ready', 'Ready to Generate Advice')}
+          </h4>
           <p className="text-gray-500 text-sm mb-4">
-            Based on your {faceAnalysis.faceShape} face shape and selected {selectedHairstyle.name}
+            {t('recommender.basedOn', 'Based on your {faceShape} face shape and selected {hairstyle}', {
+              faceShape: faceAnalysis.faceShape,
+              hairstyle: selectedHairstyle.name
+            })}
           </p>
           <button
             onClick={handleGenerateRecommendation}
             className="bg-purple-600 text-white px-6 py-3 rounded-full hover:bg-purple-700 transition-colors"
           >
-            Generate AI Advice
+            {t('recommender.generate', 'Generate AI Advice')}
           </button>
         </div>
       )}
@@ -243,12 +252,14 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex items-center gap-2 text-blue-800 mb-2">
           <Zap className="w-4 h-4" />
-          <span className="font-medium">About AI Recommendations</span>
+          <span className="font-medium">
+            {t('recommender.about', 'About AI Recommendations')}
+          </span>
         </div>
         <ul className="text-blue-700 text-sm space-y-1">
-          <li>• Personalized advice based on face shape and hairstyle features</li>
-          <li>• Includes daily care, styling, and precautions</li>
-          <li>• Consult a professional stylist for final decisions</li>
+          <li>• {t('recommender.feature1', 'Personalized advice based on face shape and hairstyle features')}</li>
+          <li>• {t('recommender.feature2', 'Includes daily care, styling, and precautions')}</li>
+          <li>• {t('recommender.feature3', 'Consult a professional stylist for final decisions')}</li>
         </ul>
       </div>
     </div>
