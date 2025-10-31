@@ -3,7 +3,11 @@ import { Scan, CheckCircle2, AlertCircle, User, RotateCcw, X } from 'lucide-reac
 import { useChromeAI } from '../hooks/useChromeAI';
 import useLanguage from '../hooks/useLanguage';
 
-const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
+/**
+ * Face analysis component using AI to determine face shape and features
+ * Provides analysis status, error handling, and retry mechanisms
+ */
+const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel, isActive = true }) => {
   const [analysis, setAnalysis] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [showCancelOption, setShowCancelOption] = useState(false);
@@ -17,7 +21,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
     cancelOperation 
   } = useChromeAI();
 
-  // 重置所有状态
+  // Reset all component state
   const resetState = () => {
     setAnalysis(null);
     setShowCancelOption(false);
@@ -25,12 +29,13 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
   };
 
   useEffect(() => {
-    if (userImage && !analysis && !aiError) {
+    // Only analyze when component is active with user image and no existing results
+    if (isActive && userImage && !analysis && !aiError) {
       startAnalysis();
     }
-  }, [userImage]);
+  }, [userImage, isActive]);
 
-  // 在错误出现后显示取消选项
+  // Show cancel option after error appears
   useEffect(() => {
     if (aiError && !aiLoading) {
       const timer = setTimeout(() => {
@@ -40,7 +45,12 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
     }
   }, [aiError, aiLoading]);
 
+  /**
+   * Initiates face analysis process
+   */
   const startAnalysis = async () => {
+    if (!isActive) return;
+    
     resetState();
     
     try {
@@ -57,12 +67,18 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
     }
   };
 
+  /**
+   * Retries analysis after failure
+   */
   const handleRetry = async () => {
     console.log('🔄 Retrying analysis...');
     resetState();
     await startAnalysis();
   };
 
+  /**
+   * Cancels ongoing analysis operation
+   */
   const handleCancel = () => {
     console.log('🛑 Cancelling analysis...');
     cancelOperation();
@@ -71,6 +87,9 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
     }
   };
 
+  /**
+   * Uses mock data when AI analysis is unavailable
+   */
   const handleSkipAnalysis = () => {
     console.log('⏭️ Skipping analysis with mock data...');
     const mockAnalysis = {
@@ -88,7 +107,9 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
     onAnalysisComplete(mockAnalysis);
   };
 
-  // 简单的面部分析处理函数
+  /**
+   * Processes raw analysis results into structured format
+   */
   const processFaceAnalysis = (result) => {
     const faceShape = result.faceShape || 'Oval';
     return {
@@ -103,6 +124,9 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
     };
   };
 
+  /**
+   * Returns localized description for face shape
+   */
   const getFaceShapeDescription = (faceShape) => {
     const descriptions = {
       'Oval': t('faceShape.Oval', 'Standard face shape, suitable for almost all hairstyles'),
@@ -122,9 +146,12 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
     return 'text-orange-600 bg-orange-50 border-orange-200';
   };
 
-  // 分析状态指示器
+  /**
+   * Analysis status indicator component
+   * Shows different states: loading, error, success, or ready
+   */
   const AnalysisStatus = () => {
-    // 分析进行中 - 显示进度条
+    // Analysis in progress - shows progress bar
     if (aiLoading && !aiError) {
       return (
         <div className="space-y-4">
@@ -138,7 +165,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
             </div>
           </div>
           
-          {/* 进度指示器 */}
+          {/* Progress indicator */}
           <div className="space-y-2">
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full animate-pulse"></div>
@@ -149,12 +176,11 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
               <span>{t('analysis.generatingResults', 'Generating results')}</span>
             </div>
           </div>
-
         </div>
       );
     }
 
-    // 显示错误状态 - 只有在loading完成后才显示错误
+    // Error state - shows after loading completes
     if (aiError && !aiLoading) {
       return (
         <div className="space-y-4">
@@ -166,7 +192,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
             </div>
           </div>
           
-          {/* 错误详情 - 显示具体的错误信息 */}
+          {/* Error details */}
           <div className="bg-red-50 border border-red-200 rounded-lg p-3">
             <div className="text-sm text-red-700">
               <div className="font-medium mb-1">{t('analysis.errorDetails', 'Error Details:')}</div>
@@ -179,7 +205,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
             </div>
           </div>
           
-          {/* 操作按钮 */}
+          {/* Action buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={handleRetry}
@@ -203,7 +229,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
             )}
           </div>
 
-          {/* 故障排除提示 */}
+          {/* Troubleshooting tips */}
           {!aiError.includes('cancelled') && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-medium text-blue-800 mb-2">{t('analysis.troubleshootingTips', 'Troubleshooting Tips:')}</h4>
@@ -219,7 +245,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
       );
     }
 
-    // 分析成功完成
+    // Analysis completed successfully
     if (analysis) {
       return (
         <div className="flex items-center gap-3 text-green-600">
@@ -232,7 +258,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
       );
     }
 
-    // 初始状态
+    // Initial ready state
     return (
       <div className="flex items-center gap-3 text-gray-500">
         <User className="w-6 h-6" />
@@ -246,16 +272,15 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
 
   return (
     <div className="space-y-6">
-
-      {/* 分析状态 */}
+      {/* Analysis status display */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <AnalysisStatus />
       </div>
 
-      {/* 分析结果 */}
+      {/* Analysis results */}
       {analysis && (
         <div className="space-y-6">
-          {/* 脸型结果 */}
+          {/* Face shape results */}
           <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-800">{t('analysis.results', 'Detection Results')}</h3>
@@ -290,7 +315,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
             </div>
           </div>
 
-          {/* 下一步提示 */}
+          {/* Next steps提示 */}
           <div className="bg-green-50 border border-green-200 rounded-xl p-4">
             <div className="flex items-center gap-2 text-green-800 mb-2">
               <CheckCircle2 className="w-4 h-4" />
@@ -305,7 +330,7 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
         </div>
       )}
 
-      {/* 技术支持说明 */}
+      {/* Technical support information */}
       <div className="text-center text-xs text-gray-500">
         <p>
           {t('analysis.poweredBy', 'Powered by {aiType}', {

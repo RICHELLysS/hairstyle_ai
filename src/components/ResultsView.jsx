@@ -4,6 +4,10 @@ import HairRecommender from './HairRecommender';
 import { useStorage } from '../hooks/useStorage';
 import useLanguage from '../hooks/useLanguage';
 
+/**
+ * Results display component showing analysis results and recommendations
+ * Provides sharing, downloading, and restart functionality
+ */
 const ResultsView = ({
   userImage,
   faceAnalysis,
@@ -16,7 +20,7 @@ const ResultsView = ({
   const { saveHistory } = useStorage();
   const { t } = useLanguage();
 
-  // 创建用户图片URL
+  // Create user image URL for display
   useEffect(() => {
     if (userImage) {
       const url = URL.createObjectURL(userImage);
@@ -25,14 +29,16 @@ const ResultsView = ({
     }
   }, [userImage]);
 
-  // 处理建议生成完成
+  /**
+   * Handles recommendation generation completion
+   */
   const handleRecommendationGenerated = (rec) => {
     setRecommendation(rec);
     if (onRecommendationGenerated) {
       onRecommendationGenerated(rec);
     }
 
-    // 保存到历史记录
+    // Save to history
     saveHistory({
       timestamp: new Date().toISOString(),
       faceShape: faceAnalysis.faceShape,
@@ -42,7 +48,9 @@ const ResultsView = ({
     });
   };
 
-  // 分享结果
+  /**
+   * Shares results via Web Share API or clipboard fallback
+   */
   const handleShare = async () => {
     const shareData = {
       title: t('results.shareTitle', 'AI Hairstyle Recommendation'),
@@ -60,7 +68,7 @@ const ResultsView = ({
         console.log('Share cancelled:', err);
       }
     } else {
-      // 备用方案：复制到剪贴板
+      // Fallback: copy to clipboard
       const text = t('results.clipboardText', 'My {faceShape} face shape is suitable for {hairstyle} hairstyle!\n\n{recommendation}...', {
         faceShape: faceAnalysis.faceShape,
         hairstyle: selectedHairstyle.name,
@@ -72,9 +80,10 @@ const ResultsView = ({
     }
   };
 
-  // 下载结果
+  /**
+   * Downloads results as text file
+   */
   const handleDownload = () => {
-    // 创建可下载的内容
     const content = t('results.downloadContent', `
 AI Hairstyle Recommendation Report
 ${'='.repeat(50)}
@@ -118,7 +127,7 @@ Maintenance Difficulty: {difficulty}
 
   return (
     <div className="space-y-8">
-      {/* 头部 */}
+      {/* Header section */}
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
           {t('results.title', 'Hairstyle Recommendation')}
@@ -129,9 +138,9 @@ Maintenance Difficulty: {difficulty}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 左侧：用户信息和发型信息 */}
+        {/* Left column: User info and hairstyle details */}
         <div className="lg:col-span-1 space-y-6">
-          {/* 用户照片 */}
+          {/* User photo */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <User className="w-4 h-4 text-orange-600" />
@@ -148,7 +157,7 @@ Maintenance Difficulty: {difficulty}
             </div>
           </div>
 
-          {/* 脸型信息 */}
+          {/* Face analysis results */}
           <div className="bg-white rounded-xl border border-orange-200 p-6">
             <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-orange-600" />
@@ -169,7 +178,7 @@ Maintenance Difficulty: {difficulty}
             </div>
           </div>
 
-          {/* 发型信息 */}
+          {/* Selected hairstyle information */}
           <div className="bg-white rounded-xl border border-orange-200 p-6">
             <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Bookmark className="w-4 h-4 text-orange-600" />
@@ -200,7 +209,7 @@ Maintenance Difficulty: {difficulty}
                   )}
                 </div>
 
-                {/* 标签 */}
+                {/* Tags */}
                 <div className="flex flex-wrap gap-1 mt-3">
                   {selectedHairstyle.tags.map(tag => (
                     <span
@@ -216,7 +225,7 @@ Maintenance Difficulty: {difficulty}
           </div>
         </div>
 
-        {/* 右侧：AI建议 */}
+        {/* Right column: AI recommendations */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl border border-orange-200 p-6 h-full">
             <HairRecommender
@@ -227,7 +236,8 @@ Maintenance Difficulty: {difficulty}
           </div>
         </div>
       </div>
-      {/* 温馨提示 */}
+
+      {/* Important notice */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex items-center gap-2 text-black-800 mb-2">
           <Star className="w-4 h-4" />
@@ -235,13 +245,11 @@ Maintenance Difficulty: {difficulty}
         </div>
         <ul className="text-black-700 text-sm space-y-1">
           <li>• {t('results.note1', 'This recommendation is generated based on AI analysis and is for reference only')}</li>
-         {/*<li>• {t('results.note2', 'Actual results may vary depending on hair texture, facial details, and other factors')}</li>
-          <li>• {t('results.note3', 'We recommend consulting with a professional hairstylist for the best hairstyle solution')}</li>*/}
           <li>• {t('results.note4', 'Your photos and data analysis are processed completely locally to protect your privacy')}</li>
         </ul>
       </div>
 
-      {/* 操作按钮 */}
+      {/* Action buttons */}
       <div className="flex flex-wrap gap-4 justify-center pt-6 border-t border-gray-200">
         <button
           onClick={handleDownload}
@@ -267,8 +275,6 @@ Maintenance Difficulty: {difficulty}
           {t('navigation.restart', 'Start Over')}
         </button>
       </div>
-
-      
     </div>
   );
 };

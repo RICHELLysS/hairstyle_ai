@@ -1,6 +1,9 @@
 import { useLanguage } from '../hooks/useLanguage';
 
-// 创建发型数据的工厂函数，接受 t 函数作为参数
+/**
+ * Hairstyle data factory function with internationalization support
+ * Creates localized hairstyle data using provided translation function
+ */
 export const createHairstyles = (t) => [
   {
     id: 1,
@@ -156,7 +159,12 @@ export const createHairstyles = (t) => [
   }
 ];
 
-// 根据脸型推荐发型
+/**
+ * Filters hairstyles by face shape compatibility
+ * @param {string} faceShape - User's detected face shape
+ * @param {Function} t - Translation function
+ * @returns {Array} Filtered list of suitable hairstyles
+ */
 export const getRecommendedHairstyles = (faceShape, t) => {
   const hairstyles = createHairstyles(t);
   return hairstyles.filter(style => 
@@ -164,7 +172,11 @@ export const getRecommendedHairstyles = (faceShape, t) => {
   );
 };
 
-// 获取所有标签
+/**
+ * Extracts all unique tags from hairstyle collection
+ * @param {Function} t - Translation function
+ * @returns {Array} Unique tag list
+ */
 export const getAllTags = (t) => {
   const hairstyles = createHairstyles(t);
   const allTags = new Set();
@@ -174,14 +186,22 @@ export const getAllTags = (t) => {
   return Array.from(allTags);
 };
 
-// 获取发型难度选项
+/**
+ * Provides localized difficulty level options
+ * @param {Function} t - Translation function
+ * @returns {Array} Difficulty options with labels
+ */
 export const getDifficultyOptions = (t) => [
   { value: t('difficulty.easy', 'Easy'), label: t('difficulty.easyMaintenance', 'Easy Maintenance') },
   { value: t('difficulty.medium', 'Medium'), label: t('difficulty.mediumMaintenance', 'Medium Maintenance') },
   { value: t('difficulty.hard', 'Hard'), label: t('difficulty.highMaintenance', 'High Maintenance') }
 ];
 
-// 脸型描述信息
+/**
+ * Face shape descriptions for user guidance
+ * @param {Function} t - Translation function
+ * @returns {Object} Face shape descriptions keyed by shape
+ */
 export const getFaceShapeDescriptions = (t) => ({
   "Oval": t('faceShape.Oval', 'Standard face shape, suitable for almost all hairstyles'),
   "Round": t('faceShape.Round', 'Face length and width are similar, need to elongate face shape through hairstyle'),
@@ -190,7 +210,10 @@ export const getFaceShapeDescriptions = (t) => ({
   "Long": t('faceShape.Long', 'Face length is significantly greater than face width, need to increase width through hairstyle')
 });
 
-// 自定义 Hook 用于在组件中使用发型数据
+/**
+ * Custom hook providing hairstyle data with internationalization
+ * @returns {Object} Hairstyle data and utility functions
+ */
 export const useHairstyles = () => {
   const { t } = useLanguage();
   

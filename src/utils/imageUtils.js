@@ -1,11 +1,14 @@
-// 图片处理工具函数
+/**
+ * Image processing utility functions
+ * Provides image compression, validation, and URL management
+ */
 
 /**
- * 压缩图片
- * @param {File|Blob} file - 图片文件
- * @param {number} maxWidth - 最大宽度
- * @param {number} quality - 图片质量 (0-1)
- * @returns {Promise<Blob>} 压缩后的图片Blob
+ * Compresses image file with resizing and quality adjustment
+ * @param {File|Blob} file - Image file to compress
+ * @param {number} maxWidth - Maximum width for resizing
+ * @param {number} quality - JPEG quality (0-1)
+ * @returns {Promise<Blob>} Compressed image blob
  */
 export const compressImage = (file, maxWidth = 800, quality = 0.7) => {
   return new Promise((resolve, reject) => {
@@ -17,7 +20,7 @@ export const compressImage = (file, maxWidth = 800, quality = 0.7) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
-        // 计算新尺寸
+        // Calculate new dimensions
         let { width, height } = img;
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
@@ -27,10 +30,10 @@ export const compressImage = (file, maxWidth = 800, quality = 0.7) => {
         canvas.width = width;
         canvas.height = height;
 
-        // 绘制压缩后的图片
+        // Draw compressed image
         ctx.drawImage(img, 0, 0, width, height);
 
-        // 转换为 Blob
+        // Convert to Blob
         canvas.toBlob(
           (blob) => {
             if (blob) {
@@ -54,15 +57,15 @@ export const compressImage = (file, maxWidth = 800, quality = 0.7) => {
 };
 
 /**
- * 验证图片文件
- * @param {File} file - 图片文件
- * @returns {Object} 验证结果
+ * Validates image file type and size
+ * @param {File} file - Image file to validate
+ * @returns {Object} Validation result with status and error message
  */
 export const validateImage = (file) => {
   const maxSize = 10 * 1024 * 1024; // 10MB
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
-  // 检查文件类型
+  // Check file type
   if (!allowedTypes.includes(file.type)) {
     return {
       valid: false,
@@ -70,7 +73,7 @@ export const validateImage = (file) => {
     };
   }
 
-  // 检查文件大小
+  // Check file size
   if (file.size > maxSize) {
     return {
       valid: false,
@@ -82,17 +85,17 @@ export const validateImage = (file) => {
 };
 
 /**
- * 创建图片URL（用于预览）
- * @param {File|Blob} file - 图片文件
- * @returns {string} 图片URL
+ * Creates blob URL for image preview
+ * @param {File|Blob} file - Image file
+ * @returns {string} Blob URL for image display
  */
 export const createImageUrl = (file) => {
   return URL.createObjectURL(file);
 };
 
 /**
- * 释放图片URL（避免内存泄漏）
- * @param {string} url - 图片URL
+ * Revokes blob URL to prevent memory leaks
+ * @param {string} url - Blob URL to revoke
  */
 export const revokeImageUrl = (url) => {
   if (url && url.startsWith('blob:')) {

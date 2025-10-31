@@ -3,7 +3,13 @@ import { Camera, Upload, RotateCcw, Circle, X, AlertCircle } from 'lucide-react'
 import { useCamera } from '../hooks/useCamera';
 import useLanguage from '../hooks/useLanguage';
 
-// 简单的图片压缩工具函数
+/**
+ * Compresses image to reduce file size while maintaining quality
+ * @param {Blob} blob - Original image blob
+ * @param {number} maxWidth - Maximum width for resizing
+ * @param {number} quality - JPEG quality (0-1)
+ * @returns {Promise<Blob>} Compressed image blob
+ */
 const compressImage = async (blob, maxWidth = 800, quality = 0.7) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -40,7 +46,11 @@ const compressImage = async (blob, maxWidth = 800, quality = 0.7) => {
   });
 };
 
-// 图片验证函数
+/**
+ * Validates image file type and size
+ * @param {File} file - Image file to validate
+ * @returns {Object} Validation result with validity and error message
+ */
 const validateImage = (file) => {
   const maxSize = 10 * 1024 * 1024; // 10MB
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -49,7 +59,6 @@ const validateImage = (file) => {
     return { valid: false, error: 'Please select an image file (JPEG, PNG, etc.)' };
   }
 
-  // 检查具体类型
   if (!allowedTypes.includes(file.type)) {
     return {
       valid: false,
@@ -64,6 +73,10 @@ const validateImage = (file) => {
   return { valid: true };
 };
 
+/**
+ * Camera capture component for taking photos or uploading images
+ * Provides camera interface with preview and compression capabilities
+ */
 const CameraCapture = ({ onImageCapture }) => {
   const [mode, setMode] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -83,7 +96,7 @@ const CameraCapture = ({ onImageCapture }) => {
     takePhoto
   } = useCamera();
 
-  // 组件卸载时停止摄像头
+  // Cleanup camera and URLs on component unmount
   useEffect(() => {
     return () => {
       if (isCameraActive) {
@@ -98,7 +111,7 @@ const CameraCapture = ({ onImageCapture }) => {
     };
   }, [isCameraActive, previewUrl, stopCamera]);
 
-  // 监听视频元素准备状态
+  // Monitor video element readiness state
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -134,7 +147,9 @@ const CameraCapture = ({ onImageCapture }) => {
     };
   }, [videoRef, mode]);
 
-  // 启动摄像头
+  /**
+   * Initializes camera and starts video stream
+   */
   const handleStartCamera = async () => {
     try {
       setError(null);
@@ -145,7 +160,7 @@ const CameraCapture = ({ onImageCapture }) => {
       console.log('🔄 Starting camera...');
       await startCamera();
       
-      // 设置超时，如果摄像头在5秒内没有就绪，显示错误
+      // Set timeout for camera readiness
       videoReadyTimeoutRef.current = setTimeout(() => {
         if (!isVideoReady) {
           console.error('❌ Camera timeout - taking too long to start');
@@ -162,7 +177,9 @@ const CameraCapture = ({ onImageCapture }) => {
     }
   };
 
-  // 停止摄像头并清理
+  /**
+   * Stops camera and cleans up resources
+   */
   const handleStopCamera = () => {
     stopCamera();
     setMode(null);
@@ -173,7 +190,9 @@ const CameraCapture = ({ onImageCapture }) => {
     }
   };
 
-  // 拍照
+  /**
+   * Captures photo from camera stream and compresses it
+   */
   const handleTakePhoto = async () => {
     try {
       setError(null);
@@ -197,7 +216,9 @@ const CameraCapture = ({ onImageCapture }) => {
     }
   };
 
-  // 处理文件选择
+  /**
+   * Handles file selection and validation
+   */
   const handleFileSelect = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -221,7 +242,9 @@ const CameraCapture = ({ onImageCapture }) => {
     }
   };
 
-  // 确认使用当前图片
+  /**
+   * Confirms image selection and passes to parent component
+   */
   const handleConfirmImage = async () => {
     if (previewUrl) {
       try {
@@ -229,7 +252,7 @@ const CameraCapture = ({ onImageCapture }) => {
         const blob = await response.blob();
         
         onImageCapture(blob);
-        // 清理 URL
+        // Cleanup URL
         URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
         setMode(null);
@@ -239,7 +262,9 @@ const CameraCapture = ({ onImageCapture }) => {
     }
   };
 
-  // 重新选择
+  /**
+   * Resets component to initial state for retaking photo
+   */
   const handleRetake = () => {
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
@@ -254,7 +279,9 @@ const CameraCapture = ({ onImageCapture }) => {
     }
   };
 
-  // 关闭摄像头模式
+  /**
+   * Closes camera mode and stops video stream
+   */
   const handleCloseCamera = () => {
     handleStopCamera();
     setMode(null);
@@ -265,7 +292,7 @@ const CameraCapture = ({ onImageCapture }) => {
       <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('Upload Photo')}</h2>
       <p className="text-gray-600 mb-8">{t('camera.subtitle', 'Take or upload a clear front-facing photo for AI face analysis')}</p>
 
-      {/* 错误显示 */}
+      {/* Error display */}
       {(error || cameraError) && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-start gap-2">
           <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
@@ -276,10 +303,9 @@ const CameraCapture = ({ onImageCapture }) => {
         </div>
       )}
 
-      {/* 初始选择模式 */}
+      {/* Initial mode selection */}
       {!mode && !previewUrl && (
         <div className="flex gap-4 justify-center mb-8">
-          {/* 改为橙色主题 */}
           <button
             onClick={handleStartCamera}
             className="flex items-center gap-2 bg-orange-500 text-white px-6 py-3 rounded-full hover:bg-orange-600 transition-colors shadow-md"
@@ -306,7 +332,7 @@ const CameraCapture = ({ onImageCapture }) => {
         </div>
       )}
 
-      {/* 摄像头预览 */}
+      {/* Camera preview interface */}
       {mode === 'camera' && (
         <div className="relative bg-black rounded-xl overflow-hidden mb-6 max-w-2xl mx-auto shadow-lg">
           <div className="absolute top-4 right-4 z-10">
@@ -326,7 +352,7 @@ const CameraCapture = ({ onImageCapture }) => {
             className="w-full h-96 object-cover"
           />
           
-          {/* 摄像头状态指示 - 修复：只在摄像头加载中显示 */}
+          {/* Camera loading indicator */}
           {cameraLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50">
               <div className="text-white text-center">
@@ -353,7 +379,7 @@ const CameraCapture = ({ onImageCapture }) => {
         </div>
       )}
 
-      {/* 图片预览 */}
+      {/* Image preview after capture/upload */}
       {previewUrl && (
         <div className="space-y-6 max-w-2xl mx-auto">
           <div className="bg-gray-100 rounded-xl overflow-hidden relative">
@@ -365,7 +391,6 @@ const CameraCapture = ({ onImageCapture }) => {
           </div>
           
           <div className="flex gap-4 justify-center">
-            {/* 改为橙色主题 */}
             <button
               onClick={handleConfirmImage}
               className="bg-orange-500 text-white px-8 py-3 rounded-full hover:bg-orange-600 transition-colors shadow-md"
@@ -384,16 +409,13 @@ const CameraCapture = ({ onImageCapture }) => {
         </div>
       )}
 
-      {/* 使用提示 */}
+      {/* Usage tips */}
       {!previewUrl && !isCameraActive && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-8 max-w-2xl mx-auto">
           <h3 className="font-semibold text-blue-800 mb-2">{t('camera.tips', 'Photo Tips')}</h3>
           <ul className="text-blue-700 text-sm text-left space-y-1">
             <li>• {t('camera.tip1', 'Choose a well-lit environment')}</li>
             <li>• {t('camera.tip2', 'Face the camera directly, keep face clear')}</li>
-            {/*<li>• {t('camera.tip3', 'Avoid wearing hats or sunglasses')}</li>
-            <li>• {t('camera.tip4', 'Maintain natural expression')}</li>
-            <li>• {t('camera.tip5', 'Use Chrome or Edge for best camera compatibility')}</li>*/}
           </ul>
         </div>
       )}

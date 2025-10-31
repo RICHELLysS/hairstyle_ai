@@ -1,25 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
 
-// 本地存储 Hook
+/**
+ * Local storage management hook for user data persistence
+ * Provides storage operations for history, settings, and user preferences
+ */
 export const useStorage = () => {
   const [history, setHistory] = useState([]);
   const [settings, setSettings] = useState({});
 
-  // 初始化 - 从 localStorage 加载数据
+  /**
+   * Initializes storage by loading data from localStorage
+   */
   useEffect(() => {
     loadFromStorage();
   }, []);
 
-  // 从 localStorage 加载数据
+  /**
+   * Loads data from localStorage into state
+   */
   const loadFromStorage = useCallback(() => {
     try {
-      // 加载历史记录
+      // Load history
       const savedHistory = localStorage.getItem('hairstyle-ai-history');
       if (savedHistory) {
         setHistory(JSON.parse(savedHistory));
       }
 
-      // 加载设置
+      // Load settings
       const savedSettings = localStorage.getItem('hairstyle-ai-settings');
       if (savedSettings) {
         setSettings(JSON.parse(savedSettings));
@@ -29,10 +36,14 @@ export const useStorage = () => {
     }
   }, []);
 
-  // 保存历史记录
+  /**
+   * Saves analysis history record
+   * @param {Object} record - History record to save
+   * @returns {boolean} Success status
+   */
   const saveHistory = useCallback((record) => {
     try {
-      const newHistory = [record, ...history.slice(0, 49)]; // 最多保存50条记录
+      const newHistory = [record, ...history.slice(0, 49)]; // Keep max 50 records
       setHistory(newHistory);
       localStorage.setItem('hairstyle-ai-history', JSON.stringify(newHistory));
       return true;
@@ -42,7 +53,10 @@ export const useStorage = () => {
     }
   }, [history]);
 
-  // 清空历史记录
+  /**
+   * Clears all history records
+   * @returns {boolean} Success status
+   */
   const clearHistory = useCallback(() => {
     try {
       setHistory([]);
@@ -54,7 +68,11 @@ export const useStorage = () => {
     }
   }, []);
 
-  // 更新设置
+  /**
+   * Updates application settings
+   * @param {Object} newSettings - Settings to update
+   * @returns {boolean} Success status
+   */
   const updateSettings = useCallback((newSettings) => {
     try {
       const updatedSettings = { ...settings, ...newSettings };
@@ -67,7 +85,11 @@ export const useStorage = () => {
     }
   }, [settings]);
 
-  // 保存用户偏好
+  /**
+   * Saves user preferences
+   * @param {Object} preferences - User preferences object
+   * @returns {boolean} Success status
+   */
   const saveUserPreferences = useCallback((preferences) => {
     try {
       const userData = {
@@ -82,7 +104,10 @@ export const useStorage = () => {
     }
   }, []);
 
-  // 加载用户偏好
+  /**
+   * Loads user preferences from storage
+   * @returns {Object|null} User preferences data
+   */
   const loadUserPreferences = useCallback(() => {
     try {
       const userData = localStorage.getItem('hairstyle-ai-user-preferences');
@@ -93,11 +118,14 @@ export const useStorage = () => {
     }
   }, []);
 
-  // 获取存储使用情况
+  /**
+   * Calculates storage usage statistics
+   * @returns {Object} Storage usage information
+   */
   const getStorageUsage = useCallback(() => {
     let totalSize = 0;
     
-    // 计算所有相关键的存储大小
+    // Calculate storage size for all relevant keys
     const keys = [
       'hairstyle-ai-history',
       'hairstyle-ai-settings',
@@ -118,7 +146,10 @@ export const useStorage = () => {
     };
   }, []);
 
-  // 导出历史记录
+  /**
+   * Exports history data as downloadable blob URL
+   * @returns {string|null} Blob URL for download
+   */
   const exportHistory = useCallback(() => {
     try {
       const dataStr = JSON.stringify(history, null, 2);
@@ -130,7 +161,11 @@ export const useStorage = () => {
     }
   }, [history]);
 
-  // 导入历史记录
+  /**
+   * Imports history data from JSON string
+   * @param {string} jsonData - JSON string of history data
+   * @returns {boolean} Success status
+   */
   const importHistory = useCallback((jsonData) => {
     try {
       const importedHistory = JSON.parse(jsonData);
@@ -147,24 +182,24 @@ export const useStorage = () => {
   }, []);
 
   return {
-    // 数据
+    // Data
     history,
     settings,
     
-    // 历史记录操作
+    // History operations
     saveHistory,
     clearHistory,
     exportHistory,
     importHistory,
     
-    // 设置操作
+    // Settings operations
     updateSettings,
     
-    // 用户偏好
+    // User preferences
     saveUserPreferences,
     loadUserPreferences,
     
-    // 工具函数
+    // Utility functions
     getStorageUsage
   };
 };

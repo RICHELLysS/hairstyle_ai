@@ -17,7 +17,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 确保根元素和body占据全屏 */
+/* Ensures root and body elements occupy full screen */
 html, body, #root {
   height: 100%;
   width: 100%;
@@ -35,7 +35,7 @@ body {
   background-color: #ffffff;
 }
 
-/* 确保App容器适应屏幕 */
+/* Ensures App container adapts to screen */
 #root {
   display: flex;
   flex-direction: column;
@@ -51,12 +51,12 @@ body {
 
 @layer components {
 
-  /* 改为橙色渐变 */
+  /* Orange gradient text styling */
   .gradient-text {
     @apply bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent;
   }
 
-  /* 添加响应式容器类 */
+  /* Responsive container classes */
   .responsive-container {
     @apply w-full max-w-full px-4 sm:px-6 lg:px-8 mx-auto;
   }
@@ -65,13 +65,13 @@ body {
     @apply px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8;
   }
 
-  /* 橙色主题按钮 */
+  /* Orange theme button styling */
   .btn-orange {
     @apply bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 transition-all duration-200;
   }
 }
 
-/* 自定义滚动条 - 改为橙色 */
+/* Custom scrollbar with orange theme */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -84,7 +84,7 @@ body {
   @apply bg-orange-400;
 }
 
-/* 链接样式 - 改为橙色系 */
+/* Link styling with orange color scheme */
 a {
   font-weight: 500;
   color: #f97316;
@@ -94,14 +94,14 @@ a:hover {
   color: #ea580c;
 }
 
-/* 标题样式 */
+/* Heading styling */
 h1 {
   font-size: clamp(2rem, 5vw, 3.2em);
   line-height: 1.1;
   word-wrap: break-word;
 }
 
-/* 按钮样式 */
+/* Button styling */
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -122,7 +122,7 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-/* 移动端优化 */
+/* Mobile optimization */
 @media (max-width: 768px) {
   body {
     font-size: 14px;
@@ -138,7 +138,7 @@ button:focus-visible {
   }
 }
 
-/* 超小屏幕优化 */
+/* Extra small screen optimization */
 @media (max-width: 480px) {
   body {
     font-size: 13px;
@@ -154,39 +154,39 @@ button:focus-visible {
   }
 }
 
-/* 大屏幕优化 */
+/* Large screen optimization */
 @media (min-width: 1200px) {
   .responsive-container {
     max-width: 1200px;
   }
 }
 
-/* 防止内容溢出 */
+/* Prevents content overflow */
 img, video, canvas {
   max-width: 100%;
   height: auto;
 }
 
-/* 文本溢出处理 */
+/* Text overflow handling */
 .text-ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* 颜色方案适配 - 移除深色模式，强制使用浅色 */
+/* Color scheme adaptation - removes dark mode, enforces light */
 :root {
   color: #213547;
   background-color: #ffffff;
 }
 a:hover {
-  color: #ea580c; /* 更深的橙色 */
+  color: #ea580c; /* Darker orange */
 }
 button {
   background-color: #f9f9f9;
 }
 
-/* 高对比度模式支持 */
+/* High contrast mode support */
 @media (prefers-contrast: high) {
   :root {
     color: #000000;
@@ -194,7 +194,7 @@ button {
   }
 }
 
-/* 减少动画模式 */
+/* Reduced motion mode */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -203,7 +203,7 @@ button {
   }
 }
 
-/* 打印样式 */
+/* Print styles */
 @media print {
   .no-print {
     display: none !important;

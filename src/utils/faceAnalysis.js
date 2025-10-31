@@ -1,14 +1,17 @@
 import { faceShapeDescriptions } from '../data/hairstyles';
 
-// 面部分析工具函数
+/**
+ * Face analysis utility functions
+ * Provides processing and formatting for AI face analysis results
+ */
 
 /**
- * 处理AI分析结果
- * @param {Object} aiResponse - AI API返回的结果
- * @returns {Object} 标准化的面部分析结果
+ * Processes raw AI analysis response into standardized format
+ * @param {Object} aiResponse - Raw response from AI API
+ * @returns {Object} Standardized face analysis results
  */
 export const processFaceAnalysis = (aiResponse) => {
-  // 如果AI返回了标准格式，直接使用
+  // Use standard format if AI returns it directly
   if (aiResponse.faceShape && aiResponse.features) {
     return {
       faceShape: aiResponse.faceShape,
@@ -19,25 +22,25 @@ export const processFaceAnalysis = (aiResponse) => {
     };
   }
 
-  // 如果AI返回的是文本，尝试解析
+  // Parse text response if AI returns string
   if (typeof aiResponse === 'string') {
     return parseTextAnalysis(aiResponse);
   }
 
-  // 默认返回模拟数据
+  // Fallback to mock data
   return getMockAnalysis();
 };
 
 /**
- * 解析文本分析结果
- * @param {string} text - AI返回的文本
- * @returns {Object} 解析后的分析结果
+ * Parses text-based AI analysis response
+ * @param {string} text - AI response text
+ * @returns {Object} Parsed analysis results
  */
 const parseTextAnalysis = (text) => {
   const faceShapes = ['Oval', 'Round', 'Square', 'Heart', 'Long'];
-  let detectedFaceShape = 'Oval'; // 默认值
+  let detectedFaceShape = 'Oval'; // Default value
   
-  // 在文本中查找脸型关键词
+  // Find face shape keywords in text
   for (const shape of faceShapes) {
     if (text.includes(shape)) {
       detectedFaceShape = shape;
@@ -58,8 +61,8 @@ const parseTextAnalysis = (text) => {
 };
 
 /**
- * 生成模拟分析结果（开发用）
- * @returns {Object} 模拟分析结果
+ * Generates mock analysis results for development
+ * @returns {Object} Mock analysis results
  */
 const getMockAnalysis = () => {
   const faceShapes = ['Oval', 'Round', 'Square', 'Heart', 'Long'];
@@ -79,9 +82,9 @@ const getMockAnalysis = () => {
 };
 
 /**
- * 获取脸型图标
- * @param {string} faceShape - 脸型
- * @returns {string} 图标
+ * Returns face shape icon representation
+ * @param {string} faceShape - Face shape identifier
+ * @returns {string} Icon character
  */
 export const getFaceShapeIcon = (faceShape) => {
   const icons = {
@@ -95,9 +98,9 @@ export const getFaceShapeIcon = (faceShape) => {
 };
 
 /**
- * 获取脸型颜色
- * @param {string} faceShape - 脸型
- * @returns {string} Tailwind CSS 颜色类
+ * Returns Tailwind CSS color classes for face shapes
+ * @param {string} faceShape - Face shape identifier
+ * @returns {string} Tailwind CSS color classes
  */
 export const getFaceShapeColor = (faceShape) => {
   const colors = {

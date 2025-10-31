@@ -1,6 +1,10 @@
 import { useState, useCallback, useRef } from 'react';
 import { useLanguage } from './useLanguage';
 
+/**
+ * Chrome AI integration hook for face analysis and recommendation generation
+ * Provides AI-powered face shape detection and hairstyle advice
+ */
 export const useChromeAI = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -11,7 +15,10 @@ export const useChromeAI = () => {
   
   const { t, currentLanguage } = useLanguage();
 
-  // 检查 Chrome AI 可用性
+  /**
+   * Checks Chrome AI API availability and status
+   * @returns {Promise<boolean>} API availability status
+   */
   const checkAIAvailability = useCallback(async () => {
     try {
       console.log('🔍 Checking Chrome AI availability...');
@@ -40,7 +47,9 @@ export const useChromeAI = () => {
     }
   }, []);
 
-  // 取消当前操作
+  /**
+   * Cancels current AI operation
+   */
   const cancelOperation = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -50,7 +59,10 @@ export const useChromeAI = () => {
     setError(null);
   }, []);
 
-  // 获取面部分析的提示词（支持多语言）
+  /**
+   * Generates face analysis prompt with current language support
+   * @returns {string} Localized analysis prompt
+   */
   const getFaceAnalysisPrompt = useCallback(() => {
     return t('ai.faceAnalysisPrompt', `Analyze this face image and identify the face shape from: Oval, Round, Square, Heart, Long.
 
@@ -67,24 +79,29 @@ Return JSON format:
 If no face detected: {"error": "No face detected"}`);
   }, [t]);
 
-  // 真实的面部分析函数
+  /**
+   * Performs face analysis using Chrome AI
+   * @param {Blob} imageBlob - User's image for analysis
+   * @param {AbortSignal} signal - Abort signal for cancellation
+   * @returns {Promise<Object>} Analysis results
+   */
   const analyzeFaceWithAI = useCallback(async (imageBlob, signal) => {
     try {
       console.log('🎯 Starting face analysis with Chrome AI...');
       
-      // 修复：创建会话时指定期望的输入类型
+      // Create session with specified expected input types
       const session = await LanguageModel.create({ 
         signal,
         expectedInputs: [
           { 
             type: "image",
-            languages: [currentLanguage]  // 使用当前语言
+            languages: [currentLanguage]  // Use current language
           }
         ],
         expectedOutputs: [
           {
             type: "text",
-            languages: [currentLanguage]  // 使用当前语言
+            languages: [currentLanguage]  // Use current language
           }
         ]
       });
@@ -93,7 +110,7 @@ If no face detected: {"error": "No face detected"}`);
       const promptText = getFaceAnalysisPrompt();
       console.log('📝 Sending prompt to Chrome AI in language:', currentLanguage);
       
-      // 使用正确的消息格式
+      // Use correct message format
       const messages = [
         {
           role: "user",
@@ -104,7 +121,7 @@ If no face detected: {"error": "No face detected"}`);
             },
             {
               type: "image",
-              value: imageBlob  // 直接使用 Blob 对象
+              value: imageBlob  // Use Blob object directly
             }
           ]
         }
@@ -114,7 +131,7 @@ If no face detected: {"error": "No face detected"}`);
       const analysisResult = await session.prompt(messages);
       console.log('✅ Chrome AI analysis result received:', analysisResult);
 
-      // 解析响应
+      // Parse response
       try {
         const jsonMatch = analysisResult.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
@@ -146,14 +163,18 @@ If no face detected: {"error": "No face detected"}`);
     }
   }, [currentLanguage, getFaceAnalysisPrompt, t]);
 
-  // 主分析函数 - 修复状态管理
+  /**
+   * Main face analysis function with state management
+   * @param {Blob} imageBlob - User's image for analysis
+   * @returns {Promise<Object>} Face analysis results
+   */
   const analyzeFace = useCallback(async (imageBlob) => {
-    // 在开始前清除之前的错误
+    // Clear previous errors before starting
     setError(null);
     setIsLoading(true);
     retryCountRef.current = 0;
     
-    // 创建新的 AbortController
+    // Create new AbortController
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
@@ -170,7 +191,7 @@ If no face detected: {"error": "No face detected"}`);
       
       const result = await analyzeFaceWithAI(imageBlob, signal);
       
-      // 成功时清除loading
+      // Clear loading on success
       setIsLoading(false);
       return result;
 
@@ -186,7 +207,7 @@ If no face detected: {"error": "No face detected"}`);
         errorMessage = t('ai.analysisFailed', 'AI analysis failed. Please try again or skip to continue.');
       }
       
-      // 错误时设置错误状态并清除loading
+      // Set error state and clear loading on failure
       setError(errorMessage);
       setIsLoading(false);
       throw err;
@@ -195,7 +216,12 @@ If no face detected: {"error": "No face detected"}`);
     }
   }, [checkAIAvailability, analyzeFaceWithAI, t]);
 
-  // 获取发型建议的提示词（支持多语言）
+  /**
+   * Generates hairstyle recommendation prompt
+   * @param {Object} faceAnalysis - User's face analysis results
+   * @param {Object} hairstyle - Selected hairstyle data
+   * @returns {string} Localized recommendation prompt
+   */
   const getRecommendationPrompt = useCallback((faceAnalysis, hairstyle) => {
     return t('ai.recommendationPrompt', `You are a professional hair style advisor, generate hairstyle recommendations based on:
 
@@ -217,7 +243,12 @@ Answer in corresponding concise 5 paragraphs within 50 words, use short sentence
     });
   }, [t]);
 
-  // 生成发型建议 - 修复会话配置
+  /**
+   * Generates hairstyle recommendations using Chrome AI
+   * @param {Object} faceAnalysis - User's face analysis results
+   * @param {Object} hairstyle - Selected hairstyle data
+   * @returns {Promise<Object>} AI-generated recommendation
+   */
   const generateRecommendation = useCallback(async (faceAnalysis, hairstyle) => {
     setIsLoading(true);
     setError(null);
@@ -236,7 +267,7 @@ Answer in corresponding concise 5 paragraphs within 50 words, use short sentence
 
       console.log('🎯 Generating hairstyle recommendation with Chrome AI in language:', currentLanguage);
       
-      // 修复：对于纯文本会话也指定期望的输入输出类型
+      // Create session with specified input/output types for text
       const session = await LanguageModel.create({ 
         signal,
         expectedInputs: [
@@ -255,11 +286,11 @@ Answer in corresponding concise 5 paragraphs within 50 words, use short sentence
       
       const promptText = getRecommendationPrompt(faceAnalysis, hairstyle);
 
-      // 修复：使用正确的消息格式
+      // Use correct message format
       const messages = [
         {
           role: "user",
-          content: promptText  // 纯文本可以直接使用字符串
+          content: promptText  // Plain text can use string directly
         }
       ];
 
@@ -283,13 +314,15 @@ Answer in corresponding concise 5 paragraphs within 50 words, use short sentence
     }
   }, [checkAIAvailability, currentLanguage, getRecommendationPrompt, t]);
 
-  // 重置错误状态
+  /**
+   * Clears current error state
+   */
   const clearError = useCallback(() => {
     setError(null);
     retryCountRef.current = 0;
   }, []);
 
-  // 初始化检查
+  // Initialize availability check
   useState(() => {
     console.log('🔧 Initializing Chrome AI hook...');
     checkAIAvailability();

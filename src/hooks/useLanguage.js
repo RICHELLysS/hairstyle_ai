@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 
-// 支持的语言列表
+/**
+ * Supported languages configuration
+ */
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English', nativeName: 'English' },
   { code: 'zh-CN', name: 'Chinese', nativeName: '中文' },
@@ -11,23 +13,25 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'de', name: 'German', nativeName: 'Deutsch' }
 ];
 
-// 默认的英语翻译
+/**
+ * Default English translations fallback
+ */
 const DEFAULT_TRANSLATIONS = {
   en: {
-    // 通用
+    // Common terms
     'common.loading': 'Loading...',
     'common.error': 'An error occurred',
     'common.tryAgain': 'Try Again',
     'common.save': 'Save',
     'common.cancel': 'Cancel',
     
-    // 导航
+    // Navigation
     'nav.home': 'Home',
     'nav.analyze': 'Analyze',
     'nav.gallery': 'Gallery',
     'nav.results': 'Results',
     
-    // 相机页面
+    // Camera page
     'camera.title': 'Step 1: Upload Photo',
     'camera.subtitle': 'Take or upload a clear front-facing photo for AI face analysis',
     'camera.takePhoto': 'Take Photo',
@@ -53,7 +57,7 @@ const DEFAULT_TRANSLATIONS = {
     'difficulty.medium': 'Medium', 
     'difficulty.hard': 'Hard',
 
-    // 分析页面
+    // Analysis page
     'analysis.analyzing': 'Analyzing your face...',
     'analysis.detecting': 'Detecting facial features',
     'analysis.shape': 'Face Shape',
@@ -61,7 +65,7 @@ const DEFAULT_TRANSLATIONS = {
     'analysis.confidence': 'Confidence',
     'analysis.failed': 'Face analysis failed',
     
-    // 发型推荐
+    // Hairstyle recommendations
     'recommender.title': 'AI Hairstyle Recommendation',
     'recommender.generating': 'AI is generating personalized advice...',
     'recommender.generationFailed': 'Generation Failed',
@@ -76,7 +80,7 @@ const DEFAULT_TRANSLATIONS = {
     'recommender.sections.styling': 'Styling Suggestions',
     'recommender.sections.caution': 'Things to Note',
     
-    // 发型库
+    // Style gallery
     'gallery.title': 'Step 3: Choose Your Favorite Hairstyle',
     'gallery.subtitle': 'Based on your {faceShape} face shape, these hairstyles are recommended for you',
     'gallery.recommended': 'Recommended',
@@ -101,14 +105,14 @@ const DEFAULT_TRANSLATIONS = {
     'results.title': 'Step 4: Your Personalized Hairstyle Recommendation',
     'results.subtitle': 'Personalized hairstyle plan generated based on AI analysis',
     
-    // 语言切换
+    // Language switching
     'language.current': 'Current Language',
     'language.select': 'Select language',
     'language.apiUnavailable': 'API Unavailable',
     'language.autoDetect': 'Auto Detect',
 
     'app.title': 'AI Hairstyle Advisor',
-    'app.statements': 'Chrome Built-in AI  |  Privacy Protection  |  Offline Available',
+    'app.statement': 'Chrome Built-in AI (require Chrome 138+) |  Privacy Protection  |  No Upload to Server',
     'app.builtFor': 'Built for Google Chrome Built-in AI Challenge 2025',
     
     'recommender.missingInfo': 'Missing necessary information, please ensure you have selected a hairstyle',
@@ -166,7 +170,7 @@ const DEFAULT_TRANSLATIONS = {
     'analysis.dataProcessedLocally': 'Data is processed locally to protect your privacy',
     'faceShape.default': 'Versatile face shape suitable for various styles',
 
-    // ResultsView 新增翻译
+    // ResultsView translations
     'results.shareTitle': 'AI Hairstyle Recommendation',
     'results.shareText': 'Based on my {faceShape} face shape, AI recommended {hairstyle} hairstyle!',
     'results.clipboardText': 'My {faceShape} face shape is suitable for {hairstyle} hairstyle!\n\n{recommendation}...',
@@ -191,7 +195,7 @@ const DEFAULT_TRANSLATIONS = {
     'results.note3': 'We recommend consulting with a professional hairstylist for the best hairstyle solution',
     'results.note4': 'Your photos and data analysis are processed completely locally to protect your privacy',
 
-  // StyleGallery 新增翻译
+  // StyleGallery translations
     'gallery.title': 'Choose Your Favorite Hairstyle',
     'gallery.yourFaceShape': 'Your Face Shape: {faceShape}',
     'gallery.recommendedStyles': 'Recommended Styles',
@@ -206,17 +210,17 @@ const DEFAULT_TRANSLATIONS = {
     'gallery.tagsSelected': '{count} tags selected',
     'gallery.recommendationLevel': 'Recommendation: {level}',
 
-    // 发型维护级别
+    // Maintenance levels
     'maintenance.low': 'Low',
     'maintenance.medium': 'Medium',
     'maintenance.high': 'High',
 
-    // 发型难度选项标签
+    // Difficulty option labels
     'difficulty.easyMaintenance': 'Easy Maintenance',
     'difficulty.mediumMaintenance': 'Medium Maintenance',
     'difficulty.highMaintenance': 'High Maintenance',
 
-    // 发型标签
+    // Hairstyle tags
     'hairstyle.tag.short': 'Short',
     'hairstyle.tag.classic': 'Classic',
     'hairstyle.tag.easyMaintenance': 'Easy Maintenance',
@@ -238,65 +242,65 @@ const DEFAULT_TRANSLATIONS = {
     'hairstyle.tag.threeDimensional': 'Three-dimensional',
     'hairstyle.tag.vintage': 'Vintage',
 
-  // Bob Cut 发型
+  // Bob Cut hairstyle
     'hairstyle.bob.name': 'Bob Cut',
     'hairstyle.bob.description': 'Classic short hair, length between ears and shoulders, suitable for various face shapes',
     'hairstyle.bob.feature1': 'Face shape modification',
     'hairstyle.bob.feature2': 'Youthful look',
     'hairstyle.bob.feature3': 'Suitable for workplace',
 
-  // Long Straight 发型
+  // Long Straight hairstyle
     'hairstyle.longStraight.name': 'Long Straight',
     'hairstyle.longStraight.description': 'Naturally smooth long straight hair, showing elegant temperament',
     'hairstyle.longStraight.feature1': 'Elegant temperament',
     'hairstyle.longStraight.feature2': 'Versatile',
     'hairstyle.longStraight.feature3': 'Suitable for various occasions',
 
-  // Wavy Hair 发型
+  // Wavy Hair hairstyle
     'hairstyle.wavy.name': 'Wavy Hair',
     'hairstyle.wavy.description': 'Romantic wavy hair, increasing hair volume and three-dimensional sense',
     'hairstyle.wavy.feature1': 'Increase hair volume',
     'hairstyle.wavy.feature2': 'Modify face shape',
     'hairstyle.wavy.feature3': 'Strong fashion sense',
 
-  // Lob Cut 发型
+  // Lob Cut hairstyle
     'hairstyle.lob.name': 'Lob Cut',
     'hairstyle.lob.description': 'Hair length at shoulder position, combining the crispness of short hair and the softness of long hair',
     'hairstyle.lob.feature1': 'Fashionable',
     'hairstyle.lob.feature2': 'Easy maintenance',
     'hairstyle.lob.feature3': 'Suitable for various ages',
 
-  // Pixie Cut 发型
+  // Pixie Cut hairstyle
     'hairstyle.pixie.name': 'Pixie Cut',
     'hairstyle.pixie.description': 'Ultra-short hairstyle, highlighting facial contours, showing personality',
     'hairstyle.pixie.feature1': 'Highlight facial features',
     'hairstyle.pixie.feature2': 'Show personality',
     'hairstyle.pixie.feature3': 'Refreshing and neat',
 
-    // French Bangs 发型
+    // French Bangs hairstyle
     'hairstyle.frenchBangs.name': 'French Bangs',
     'hairstyle.frenchBangs.description': 'Casual and casual bangs, adding fashion sense with various hairstyles',
     'hairstyle.frenchBangs.feature1': 'Modify forehead',
     'hairstyle.frenchBangs.feature2': 'Anti-aging',
     'hairstyle.frenchBangs.feature3': 'Increase fashion sense',
 
-  // Layered Long Hair 发型
+  // Layered Long Hair hairstyle
     'hairstyle.layeredLong.name': 'Layered Long Hair',
     'hairstyle.layeredLong.description': 'Long hair with a sense of layers, increasing the dynamics and three-dimensional sense of the hairstyle',
     'hairstyle.layeredLong.feature1': 'Increase dynamics',
     'hairstyle.layeredLong.feature2': 'Modify face shape',
     'hairstyle.layeredLong.feature3': 'Show hair volume',
 
-  // Vintage Curls 发型
+  // Vintage Curls hairstyle
     'hairstyle.vintageCurls.name': 'Vintage Curls',
     'hairstyle.vintageCurls.description': 'Small curly hair in retro style, showing retro charm',
     'hairstyle.vintageCurls.feature1': 'Retro style',
     'hairstyle.vintageCurls.feature2': 'Show personality',
     'hairstyle.vintageCurls.feature3': 'Suitable for special occasions',
 
-  // StyleGallery 新增翻译
+  // StyleGallery translations
     'gallery.difficultyLevel': 'Difficulty: {level}',
-    // AI 相关翻译
+    // AI related translations
     'ai.faceAnalysisPrompt': `Analyze this face image and identify the face shape from: Oval, Round, Square, Heart, Long.
 
     Return JSON format:
@@ -339,22 +343,33 @@ const DEFAULT_TRANSLATIONS = {
   }
 };
 
-// 创建全局状态管理
+/**
+ * Global state management for language and translations
+ */
 let globalTranslations = { ...DEFAULT_TRANSLATIONS };
 let globalCurrentLanguage = 'en';
 let listeners = [];
 
+/**
+ * Notifies all registered listeners of state changes
+ */
 const notifyListeners = () => {
   listeners.forEach(listener => listener());
 };
 
+/**
+ * Language management hook with translation capabilities
+ * Provides internationalization support with Chrome Translator API fallback
+ */
 export const useLanguage = () => {
   const [currentLanguage, setCurrentLanguage] = useState(globalCurrentLanguage);
   const [translations, setTranslations] = useState(globalTranslations[globalCurrentLanguage] || DEFAULT_TRANSLATIONS.en);
   const [isTranslating, setIsTranslating] = useState(false);
   const [translationError, setTranslationError] = useState(null);
 
-  // 监听全局状态变化
+  /**
+   * Listens for global state changes
+   */
   useEffect(() => {
     const listener = () => {
       setCurrentLanguage(globalCurrentLanguage);
@@ -367,12 +382,19 @@ export const useLanguage = () => {
     };
   }, []);
 
-  // 检查 Chrome Translator API 是否可用
+  /**
+   * Checks Chrome Translator API availability
+   * @returns {boolean} API availability status
+   */
   const isTranslatorAvailable = useCallback(() => {
     return typeof window !== 'undefined' && 'Translator' in window;
   }, []);
 
-  // 从 localStorage 获取缓存的翻译
+  /**
+   * Retrieves cached translation from localStorage
+   * @param {string} langCode - Language code
+   * @returns {Object|null} Cached translation object
+   */
   const getCachedTranslation = useCallback((langCode) => {
     try {
       const cached = localStorage.getItem(`translation-${langCode}`);
@@ -383,7 +405,11 @@ export const useLanguage = () => {
     }
   }, []);
 
-  // 保存翻译到 localStorage
+  /**
+   * Saves translation to localStorage cache
+   * @param {string} langCode - Language code
+   * @param {Object} translation - Translation object to cache
+   */
   const saveTranslationToCache = useCallback((langCode, translation) => {
     try {
       localStorage.setItem(`translation-${langCode}`, JSON.stringify(translation));
@@ -393,7 +419,12 @@ export const useLanguage = () => {
     }
   }, []);
 
-  // 批量翻译
+  /**
+   * Performs batch translation of text strings
+   * @param {Object} sourceTexts - Key-value pairs of text to translate
+   * @param {string} targetLang - Target language code
+   * @returns {Promise<Object>} Translated text object
+   */
   const batchTranslate = useCallback(async (sourceTexts, targetLang) => {
     if (targetLang === 'en') {
       return DEFAULT_TRANSLATIONS.en;
@@ -414,7 +445,7 @@ export const useLanguage = () => {
       const translated = {};
       const keys = Object.keys(sourceTexts);
       
-      // 顺序翻译以确保稳定性
+      // Sequential translation for stability
       for (const key of keys) {
         const text = sourceTexts[key];
         if (text && typeof text === 'string') {
@@ -439,7 +470,10 @@ export const useLanguage = () => {
     }
   }, [isTranslatorAvailable]);
 
-  // 切换语言 - 修复全局状态更新
+  /**
+   * Switches application language with translation support
+   * @param {string} targetLang - Target language code
+   */
   const switchLanguage = useCallback(async (targetLang) => {
     if (targetLang === globalCurrentLanguage) {
       return;
@@ -468,14 +502,14 @@ export const useLanguage = () => {
         }
       }
       
-      // 更新全局状态
+      // Update global state
       globalTranslations[targetLang] = newTranslations;
       globalCurrentLanguage = targetLang;
       
-      // 保存偏好设置
+      // Save preferences
       localStorage.setItem('preferred-language', targetLang);
       
-      // 通知所有监听器
+      // Notify all listeners
       notifyListeners();
       
       console.log(`🎯 Global language updated to: ${targetLang}`);
@@ -484,7 +518,7 @@ export const useLanguage = () => {
       console.error('Language switch failed:', err);
       setTranslationError(err.message);
       
-      // 出错时回退到英语
+      // Fallback to English on error
       globalTranslations.en = DEFAULT_TRANSLATIONS.en;
       globalCurrentLanguage = 'en';
       localStorage.setItem('preferred-language', 'en');
@@ -494,11 +528,17 @@ export const useLanguage = () => {
     }
   }, [batchTranslate, getCachedTranslation, saveTranslationToCache]);
 
-  // 获取翻译文本
+  /**
+   * Translation function with parameter substitution
+   * @param {string} key - Translation key
+   * @param {string} fallback - Fallback text
+   * @param {Object} params - Parameter substitution values
+   * @returns {string} Localized text
+   */
   const t = useCallback((key, fallback = '', params = {}) => {
     let text = translations[key] || fallback || key;
     
-    // 替换参数
+    // Replace parameters
     Object.entries(params).forEach(([paramKey, paramValue]) => {
       const placeholder = `{${paramKey}}`;
       text = text.replace(new RegExp(placeholder, 'g'), paramValue);
@@ -507,7 +547,9 @@ export const useLanguage = () => {
     return text;
   }, [translations]);
 
-  // 手动清除翻译缓存
+  /**
+   * Clears all translation cache except English
+   */
   const clearTranslationCache = useCallback(() => {
     SUPPORTED_LANGUAGES.forEach(lang => {
       if (lang.code !== 'en') {
@@ -523,7 +565,10 @@ export const useLanguage = () => {
     console.log('🧹 Cleared all translation cache');
   }, []);
 
-  // 获取已缓存的语言列表
+  /**
+   * Retrieves list of cached languages
+   * @returns {Array} List of cached language codes
+   */
   const getCachedLanguages = useCallback(() => {
     return SUPPORTED_LANGUAGES.filter(lang => {
       if (lang.code === 'en') return true;
@@ -531,7 +576,9 @@ export const useLanguage = () => {
     }).map(lang => lang.code);
   }, [getCachedTranslation]);
 
-  // 初始化语言设置
+  /**
+   * Initializes language settings on component mount
+   */
   useEffect(() => {
     const initializeLanguage = async () => {
       const savedLanguage = localStorage.getItem('preferred-language');

@@ -1,16 +1,39 @@
-# React + Vite
+# AI Hairstyle Advisor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A privacy-focused web application that provides personalized hairstyle recommendations using Chrome's built-in AI capabilities. This application analyzes facial features to suggest suitable hairstyles without uploading any data to external servers.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Face Shape Analysis**: Utilizes Chrome's LanguageModel API to detect face shapes from uploaded photos
+- **AI-Powered Recommendations**: Generates personalized hairstyle advice based on facial analysis
+- **Multi-language Support**: Built-in translation system supporting 7 languages
+- **Privacy First**: All processing occurs locally on your device - no data leaves your browser
+- **Responsive Design**: Optimized for desktop and mobile devices
+- **Step-by-Step Workflow**: Intuitive 3-step process: photo capture → analysis → recommendations
 
-## React Compiler
+## Technology Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend**: React with Tailwind CSS
+- **AI Integration**: Chrome Built-in AI (LanguageModel API)
+- **Internationalization**: Custom translation system with Chrome Translator API
+- **Storage**: Local browser storage for user preferences and history
+- **Image Processing**: Client-side compression and validation
 
-## Expanding the ESLint configuration
+## Requirements
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- Chrome 138+ browser
+- Chrome AI features enabled (via chrome://flags)
+- Camera access for photo capture (optional - file upload available)
+
+## Usage
+
+1. **Capture Photo**: Upload or take a clear front-facing photo
+2. **Face Analysis**: AI analyzes facial features to determine face shape
+3. **Browse Styles**: Explore recommended hairstyles based on your face shape
+4. **Get Advice**: Receive personalized styling recommendations and maintenance tips
+
+## Privacy & Security
+
+All image processing and AI analysis occur completely within your browser. No personal data, photos, or analysis results are transmitted to external servers. The application works entirely offline once loaded.
+
+Built for the Google Chrome Built-in AI Challenge 2025.

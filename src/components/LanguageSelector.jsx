@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { Globe, Check, Loader, AlertCircle } from 'lucide-react';
 import useLanguage from '../hooks/useLanguage';
 
+/**
+ * Language selector component with translation status indicators
+ * Supports built-in, cached, and dynamic translation states
+ */
 const LanguageSelector = () => {
   const {
     currentLanguage,
@@ -19,6 +23,9 @@ const LanguageSelector = () => {
   const currentLang = supportedLanguages.find(lang => lang.code === currentLanguage);
   const cachedLanguages = getCachedLanguages();
 
+  /**
+   * Handles language selection and triggers translation
+   */
   const handleLanguageSelect = async (langCode) => {
     if (langCode === currentLanguage) {
       setIsOpen(false);
@@ -36,7 +43,9 @@ const LanguageSelector = () => {
 
   const isButtonTranslating = isTranslating || localTranslating;
 
-  // 获取语言状态
+  /**
+   * Determines language availability status
+   */
   const getLanguageStatus = (langCode) => {
     if (langCode === 'en') return 'built-in';
     if (cachedLanguages.includes(langCode)) return 'cached';
@@ -45,7 +54,7 @@ const LanguageSelector = () => {
 
   return (
     <div className="relative inline-block">
-      {/* 翻译加载遮罩 */}
+      {/* Translation loading overlay */}
       {localTranslating && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-xl text-center min-w-[200px]">
@@ -57,7 +66,7 @@ const LanguageSelector = () => {
         </div>
       )}
 
-      {/* 错误提示 */}
+      {/* Error notification */}
       {translationError && (
         <div className="fixed top-4 right-4 bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg z-50 max-w-sm">
           <div className="flex items-center gap-2">
@@ -68,7 +77,7 @@ const LanguageSelector = () => {
         </div>
       )}
 
-      {/* 语言切换按钮 */}
+      {/* Language toggle button */}
       <button
         className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm font-medium shadow-sm"
         onClick={() => setIsOpen(!isOpen)}
@@ -85,10 +94,10 @@ const LanguageSelector = () => {
         </span>
       </button>
 
-      {/* 下拉菜单 */}
+      {/* Dropdown menu */}
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl min-w-64 z-50 overflow-hidden">
-          {/* 语言列表 */}
+          {/* Language list */}
           <div className="max-h-80 overflow-y-auto">
             {supportedLanguages.map((language) => {
               const status = getLanguageStatus(language.code);
@@ -115,7 +124,7 @@ const LanguageSelector = () => {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {/* 状态指示器 */}
+                    {/* Status indicator */}
                     <div className={`w-2 h-2 rounded-full ${
                       status === 'built-in' ? 'bg-blue-400' :
                       status === 'cached' ? 'bg-green-400' :

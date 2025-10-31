@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Camera, Sparkles, Shield, WifiOff } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import LanguageSelector from './components/LanguageSelector';
 import useLanguage from './hooks/useLanguage';
 import CameraCapture from './components/CameraCapture';
@@ -8,6 +7,10 @@ import StyleGallery from './components/StyleGallery';
 import ResultsView from './components/ResultsView';
 import { useStorage } from './hooks/useStorage';
 
+/**
+ * Main application component orchestrating the hairstyle recommendation workflow
+ * Manages multi-step process: photo capture → face analysis → style selection → results
+ */
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [userImage, setUserImage] = useState(null);
@@ -19,30 +22,61 @@ function App() {
   
   const { t, currentLanguage, isTranslating } = useLanguage();
 
-  // 添加语言变化监听，强制重新渲染关键部分
+  // Language change listener for forcing re-renders of critical sections
   const [contentKey, setContentKey] = useState(0);
+  const hasLoggedSupport = useRef(false);
 
+  /**
+   * Checks browser compatibility for Chrome AI features on component mount
+   */
+  useEffect(() => {
+    const isChrome = /Chrome/.test(navigator.userAgent);
+    const isSupported = typeof LanguageModel !== 'undefined';
+    
+    if (!isChrome || !isSupported) {
+      console.warn('Chrome AI features require Chrome 138+');
+      // Display fallback experience or informational message
+    } else {
+      console.log('✅ Chrome AI features are supported.');
+    }
+    hasLoggedSupport.current = true;
+  }, []);
+
+  /**
+   * Forces content re-render on language changes
+   */
   useEffect(() => {
     console.log(`🌐 Language changed to: ${currentLanguage}`);
-    // 当语言变化时，强制重新渲染内容
     setContentKey(prev => prev + 1);
   }, [currentLanguage]);
 
+  /**
+   * Handles successful image capture and initiates analysis
+   */
   const handleImageCapture = (image) => {
     setUserImage(image);
     setHasCompletedStep1(true);
   };
 
+  /**
+   * Processes completed face analysis and advances workflow
+   */
   const handleFaceAnalysisComplete = (analysis) => {
     setFaceAnalysis(analysis);
     setCurrentStep(2);
   };
 
+  /**
+   * Handles hairstyle selection and advances to results
+   */
   const handleHairstyleSelect = (hairstyle) => {
     setSelectedHairstyle(hairstyle);
     setCurrentStep(3);
   };
 
+  /**
+   * Processes AI-generated recommendations and saves to history
+   */
   const handleRecommendationGenerated = (rec) => {
     setRecommendation(rec);
     saveHistory({
@@ -53,6 +87,9 @@ function App() {
     });
   };
 
+  /**
+   * Resets application to initial state for new session
+   */
   const handleRestart = () => {
     setUserImage(null);
     setFaceAnalysis(null);
@@ -62,18 +99,30 @@ function App() {
     setHasCompletedStep1(false);
   };
 
+  /**
+   * Handles step navigation with proper state management
+   */
   const handleStepClick = (stepNumber) => {
     if (!isStepClickable(stepNumber)) return;
     
     if (stepNumber === 1 && currentStep > 1) {
+      // Reset all related states to ensure proper step disabling
       setHasCompletedStep1(false);
       setFaceAnalysis(null);
+      setSelectedHairstyle(null);
+      setRecommendation(null);
+    } else if (stepNumber === 2 && currentStep === 3) {
+      // Reset only step 3 states when returning from step 3
+      setSelectedHairstyle(null);
+      setRecommendation(null);
     }
     
     setCurrentStep(stepNumber);
   };
 
-  // 使用useMemo来缓存步骤配置，依赖语言变化
+  /**
+   * Step configuration with internationalization support
+   */
   const steps = useMemo(() => [
     { 
       number: 1, 
@@ -95,12 +144,17 @@ function App() {
     }
   ], [t, userImage, hasCompletedStep1, faceAnalysis, selectedHairstyle, currentLanguage]);
 
+  /**
+   * Determines if a step is navigable based on completion status
+   */
   const isStepClickable = (stepNumber) => {
     const step = steps.find(s => s.number === stepNumber);
     return step ? step.enabled : false;
   };
 
-  // 渲染当前步骤的内容 - 使用 contentKey 强制重新渲染
+  /**
+   * Renders appropriate content for current workflow step
+   */
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -147,7 +201,7 @@ function App() {
   return (
     <div className="min-h-screen bg-white">
       
-      {/* Header - 使用 contentKey 强制重新渲染 */}
+      {/* Header with forced re-render on language changes */}
       <header key={`header-${contentKey}`} className="glass-effect sticky top-0 z-10 shadow-sm bg-white">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -167,7 +221,7 @@ function App() {
         </div>
       </header>
 
-      {/* 进度指示器 - 使用 contentKey 强制重新渲染 */}
+      {/* Progress indicator with forced re-render on language changes */}
       <div key={`progress-${contentKey}`} className="max-w-4xl mx-auto px-4 py-8 bg-white">
         <div className="flex justify-center mb-12">
           <div className="flex items-center gap-4 md:gap-8">
@@ -210,13 +264,13 @@ function App() {
           </div>
         </div>
 
-        {/* 主内容区域 - 使用 contentKey 强制重新渲染 */}
+        {/* Main content area with forced re-render on language changes */}
         <div className="bg-white p-6">
           {renderStepContent()}
         </div>
       </div>
 
-      {/* 全局翻译加载状态指示器 */}
+      {/* Global translation loading indicator */}
       {isTranslating && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-xl text-center min-w-[200px]">
@@ -230,7 +284,10 @@ function App() {
       {/* Footer */}
       <footer className="max-w-6xl mx-auto px-4 py-10 text-center">
        <p className="text-sm text-gray-600">
-                  {t('app.statements', 'Chrome Built-in AI  |  Privacy Protection  |  Offline Available')}
+                  {t('app.statement', 'Chrome Built-in AI (require Chrome 138+) |  Privacy Protection  |  No Upload to Server')}
+        </p>
+        <p className="text-sm text-gray-600">
+                  {t('app.builtFor', 'Built for Google Chrome Built-in AI Challenge 2025')}
         </p>
       </footer>
     </div>

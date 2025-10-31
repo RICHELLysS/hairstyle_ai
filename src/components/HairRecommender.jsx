@@ -3,6 +3,10 @@ import { Sparkles, Lightbulb, Scissors, Clock, Star, Zap } from 'lucide-react';
 import { useChromeAI } from '../hooks/useChromeAI';
 import useLanguage from '../hooks/useLanguage';
 
+/**
+ * AI-powered hairstyle recommendation component
+ * Generates personalized advice based on face shape and selected hairstyle
+ */
 const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGenerated }) => {
   const [recommendation, setRecommendation] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -11,9 +15,10 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
   const { t } = useLanguage();
   const { generateRecommendation: generateAISuggestion, isLoading } = useChromeAI();
 
-  // 使用 useCallback 避免重复创建函数
+  /**
+   * Generates AI recommendation using face analysis and selected hairstyle
+   */
   const handleGenerateRecommendation = useCallback(async () => {
-    // 检查必要的参数是否存在
     if (!faceAnalysis || !selectedHairstyle) {
       console.error('Missing required parameters:', { faceAnalysis, selectedHairstyle });
       setError(t('recommender.missingInfo', 'Missing necessary information, please ensure you have selected a hairstyle'));
@@ -28,7 +33,6 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
       const result = await generateAISuggestion(faceAnalysis, selectedHairstyle);
       console.log('Recommendation result:', result);
       
-      // 修正：检查 result 的结构
       const recommendationText = typeof result === 'string' ? result : result.text;
       
       setRecommendation(recommendationText);
@@ -43,15 +47,16 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
     }
   }, [faceAnalysis, selectedHairstyle, generateAISuggestion, onRecommendationGenerated, t]);
 
-  // 修复 useEffect 依赖
+  // Generate recommendation when dependencies are available
   useEffect(() => {
-    // 只有当 faceAnalysis 和 selectedHairstyle 都存在时才生成推荐
     if (faceAnalysis && selectedHairstyle && !recommendation) {
       handleGenerateRecommendation();
     }
   }, [faceAnalysis, selectedHairstyle, handleGenerateRecommendation, recommendation]);
 
-  // 解析建议文本为结构化内容
+  /**
+   * Parses recommendation text into structured sections
+   */
   const parseRecommendation = (text) => {
     if (!text || typeof text !== 'string') return null;
 
@@ -69,7 +74,7 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
       lines.forEach(line => {
         const lowerLine = line.toLowerCase();
         
-        // 简单的关键词匹配逻辑
+        // Simple keyword matching logic
         if (lowerLine.includes('why') || lowerLine.includes('reason') || lowerLine.includes('suitable') || lowerLine.includes('适合')) {
           currentSection = 'reason';
         } else if (lowerLine.includes('maintenance') || lowerLine.includes('care') || lowerLine.includes('daily') || lowerLine.includes('打理')) {
@@ -94,7 +99,9 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
 
   const parsedRecommendation = parseRecommendation(recommendation);
 
-  // 获取章节标题
+  /**
+   * Returns localized section title
+   */
   const getSectionTitle = (section) => {
     const titles = {
       reason: t('recommender.sections.reason', 'Why It Suits You'),
@@ -105,7 +112,9 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
     return titles[section];
   };
 
-  // 获取章节图标
+  /**
+   * Returns icon for each section
+   */
   const getSectionIcon = (section) => {
     const icons = {
       reason: <Star className="w-4 h-4 text-orange-600" />,
@@ -116,7 +125,7 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
     return icons[section];
   };
 
-  // 如果没有必要的参数，显示提示
+  // Show prompt if required parameters are missing
   if (!faceAnalysis || !selectedHairstyle) {
     return (
       <div className="space-y-6">
@@ -152,7 +161,7 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
         </h3>
       </div>
 
-      {/* 生成状态 */}
+      {/* Generation status */}
       {(isGenerating || isLoading) ? (
         <div className="space-y-4">
           <div className="flex items-center gap-3 text-orange-600">
@@ -160,7 +169,7 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
             <span>{t('recommender.generating', 'AI is generating personalized advice...')}</span>
           </div>
           
-          {/* 加载动画 */}
+          {/* Loading animation */}
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="animate-pulse">
@@ -189,7 +198,7 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
         </div>
       ) : recommendation ? (
         <div className="space-y-6">
-          {/* 结构化建议 */}
+          {/* Structured recommendation */}
           {parsedRecommendation ? (
             <div className="space-y-4">
               {Object.entries(parsedRecommendation).map(([section, content]) => 
@@ -207,24 +216,25 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
               )}
             </div>
           ) : (
-            /* 原始文本显示 */
+            /* Fallback to raw text display */
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                 {recommendation}
               </p>
             </div>
           )}
-          {/* 技术支持说明 */}
-      <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-        <div className="flex items-center gap-2 text-orange-700 mb-2">
-          <Zap className="w-4 h-4" />
-          <span className="font-normal">
-            {t('recommender.feature', 'AI-generated advice based on face shape and hairstyle features')}
-          </span>
-        </div>
-      </div>
+          
+          {/* Technical information */}
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-orange-700 mb-2">
+              <Zap className="w-4 h-4" />
+              <span className="font-normal">
+                {t('recommender.feature', 'AI-generated advice based on face shape and hairstyle features')}
+              </span>
+            </div>
+          </div>
 
-          {/* 重新生成按钮 */}
+          {/* Regenerate button */}
           <div className="text-center">
             <button
               onClick={handleGenerateRecommendation}
@@ -236,7 +246,7 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
           </div>
         </div>
       ) : (
-        /* 初始状态 */
+        /* Initial state */
         <div className="text-center py-8">
           <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h4 className="text-gray-600 font-medium mb-2">
@@ -256,8 +266,6 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
           </button>
         </div>
       )}
-
-      
     </div>
   );
 };
