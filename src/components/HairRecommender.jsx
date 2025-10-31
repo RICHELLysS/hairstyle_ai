@@ -146,7 +146,7 @@ const HairRecommender = ({ faceAnalysis, selectedHairstyle, onRecommendationGene
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Sparkles className="w-6 h-6 text-orange-600" />
+        <img src="/scissors.png" alt="Logo" className="w-8 h-8" />
         <h3 className="text-lg font-semibold text-gray-800">
           {t('recommender.title', 'AI Hairstyle Recommendation')}
         </h3>

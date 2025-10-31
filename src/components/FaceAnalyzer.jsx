@@ -150,15 +150,6 @@ const FaceAnalyzer = ({ userImage, onAnalysisComplete, onCancel }) => {
             </div>
           </div>
 
-          {/* 取消按钮 */}
-          <div className="text-center">
-            <button
-              onClick={handleCancel}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
-            >
-              {t('analysis.cancel', 'Cancel Analysis')}
-            </button>
-          </div>
         </div>
       );
     }
