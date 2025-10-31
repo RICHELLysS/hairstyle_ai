@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Camera, Sparkles, Shield, WifiOff, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Camera, Sparkles, Shield, WifiOff } from 'lucide-react';
 import LanguageSelector from './components/LanguageSelector';
 import useLanguage from './hooks/useLanguage';
 import CameraCapture from './components/CameraCapture';
@@ -14,27 +14,49 @@ function App() {
   const [faceAnalysis, setFaceAnalysis] = useState(null);
   const [selectedHairstyle, setSelectedHairstyle] = useState(null);
   const [recommendation, setRecommendation] = useState(null);
+  const [hasCompletedStep1, setHasCompletedStep1] = useState(false);
   const { saveHistory } = useStorage();
   
-  // 使用 useLanguage Hook - 移除不需要的 props
   const { t, isTranslating, currentLanguage } = useLanguage();
 
+  useEffect(() => {
+    console.log(`🔄 App: Current step changed to ${currentStep}`, {
+      hasUserImage: !!userImage,
+      hasFaceAnalysis: !!faceAnalysis,
+      hasSelectedHairstyle: !!selectedHairstyle,
+      hasRecommendation: !!recommendation,
+      hasCompletedStep1: hasCompletedStep1
+    });
+  }, [currentStep, userImage, faceAnalysis, selectedHairstyle, recommendation, hasCompletedStep1]);
+
   const handleImageCapture = (image) => {
+    console.log('📸 Step 1: Image captured, starting face analysis...');
     setUserImage(image);
-    setCurrentStep(2);
+    setHasCompletedStep1(true);
+    
+    // 自动开始面部分析，作为过渡步骤
+    setTimeout(() => {
+      console.log('🔍 Starting AI face analysis...');
+    }, 100);
   };
 
   const handleFaceAnalysisComplete = (analysis) => {
+    console.log('✅ Face analysis completed:', {
+      faceShape: analysis.faceShape,
+      faceDetected: analysis.faceDetected
+    });
     setFaceAnalysis(analysis);
-    setCurrentStep(3);
+    setCurrentStep(2); // 直接进入步骤2（浏览发型）
   };
 
   const handleHairstyleSelect = (hairstyle) => {
+    console.log('💇 Step 2: Hairstyle selected:', hairstyle.name);
     setSelectedHairstyle(hairstyle);
-    setCurrentStep(4);
+    setCurrentStep(3); // 进入步骤3（获取推荐）
   };
 
   const handleRecommendationGenerated = (rec) => {
+    console.log('🎯 Step 3: Recommendation generated');
     setRecommendation(rec);
     saveHistory({
       timestamp: new Date().toISOString(),
@@ -45,56 +67,62 @@ function App() {
   };
 
   const handleRestart = () => {
+    console.log('🔄 Restarting application...');
     setUserImage(null);
     setFaceAnalysis(null);
     setSelectedHairstyle(null);
     setRecommendation(null);
     setCurrentStep(1);
+    setHasCompletedStep1(false);
   };
 
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+  const handleStepClick = (stepNumber) => {
+    if (!isStepClickable(stepNumber)) return;
+    
+    console.log(`📝 Navigating to step ${stepNumber} from step ${currentStep}`);
+    
+    if (stepNumber === 1 && currentStep > 1) {
+      console.log('↩️ Returning to step 1 - resetting analysis state');
+      setHasCompletedStep1(false);
+      setFaceAnalysis(null);
     }
+    
+    setCurrentStep(stepNumber);
   };
 
-  const handleNext = () => {
-    if (currentStep < 4) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  // 使用 t 函数获取步骤信息
-  const steps = [
+  // 使用 useMemo 优化步骤配置，确保语言切换时重新计算
+  const steps = useMemo(() => [
     { 
       number: 1, 
-      title: t('navigation.steps.camera'), 
-      description: t('step.camera.description', 'Upload or take photo') 
+      title: t('navigation.steps.camera', 'Upload or take photo'), 
+      description: t('step.camera.description', 'Upload or take photo'),
+      enabled: true
     },
     { 
       number: 2, 
-      title: t('navigation.steps.analysis'), 
-      description: t('step.analysis.description', 'AI analyzes face shape') 
+      title: t('navigation.steps.selection', 'Browse hairstyles'), 
+      description: t('step.selection.description', 'Browse hairstyles'),
+      enabled: !!userImage && hasCompletedStep1 && !!faceAnalysis
     },
     { 
       number: 3, 
-      title: t('navigation.steps.selection'), 
-      description: t('step.selection.description', 'Browse hairstyles') 
-    },
-    { 
-      number: 4, 
-      title: t('navigation.steps.results'), 
-      description: t('step.results.description', 'Get recommendations') 
+      title: t('navigation.steps.results', 'Get recommendations'), 
+      description: t('step.results.description', 'Get recommendations'),
+      enabled: !!userImage && !!selectedHairstyle
     }
-  ];
+  ], [t, userImage, hasCompletedStep1, faceAnalysis, selectedHairstyle]);
+
+  const isStepClickable = (stepNumber) => {
+    const step = steps.find(s => s.number === stepNumber);
+    return step ? step.enabled : false;
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* 全局翻译加载状态 */}
+    <div className="min-h-screen bg-white">
       {isTranslating && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-xl text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
             <p className="text-gray-700">
               {t('common.translating', 'Translating to')} {currentLanguage}...
             </p>
@@ -103,11 +131,11 @@ function App() {
       )}
 
       {/* Header */}
-      <header className="glass-effect sticky top-0 z-10 shadow-sm">
+      <header className="glass-effect sticky top-0 z-10 shadow-sm bg-white">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Sparkles className="w-8 h-8 text-purple-600" />
+              <Sparkles className="w-8 h-8 text-orange-500" />
               <div>
                 <h1 className="text-2xl font-bold gradient-text">
                   {t('app.title', 'AI Hairstyle Advisor')}
@@ -119,18 +147,17 @@ function App() {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="hidden md:flex items-center gap-4 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
-                  <Shield className="w-4 h-4 text-green-600" />
+                  <Shield className="w-4 h-4 text-orange-600" />
                   <span>{t('common.privacy', 'Data Never Leaves Device')}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <WifiOff className="w-4 h-4 text-blue-600" />
+                  <WifiOff className="w-4 h-4 text-orange-600" />
                   <span>{t('common.offline', 'Offline Available')}</span>
                 </div>
               </div>
               
-              {/* 移除错误的 props 传递 */}
               <LanguageSelector />
             </div>
           </div>
@@ -138,41 +165,41 @@ function App() {
       </header>
 
       {/* Progress Indicator */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 bg-white">
         <div className="flex justify-center mb-12">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 md:gap-8">
             {steps.map((step, index) => (
-              <div key={step.number} className="flex items-center gap-4">
+              <div key={step.number} className="flex items-center gap-2 md:gap-4">
                 <button
-                  onClick={() => {
-                    if (step.number <= currentStep || step.number === currentStep + 1) {
-                      setCurrentStep(step.number);
-                    }
-                  }}
-                  disabled={step.number > currentStep + 1}
-                  className={`flex items-center justify-center w-12 h-12 rounded-full border-2 font-semibold transition-all ${
-                    currentStep >= step.number 
-                      ? 'bg-purple-600 border-purple-600 text-white hover:bg-purple-700 cursor-pointer' 
-                      : step.number === currentStep + 1
-                      ? 'bg-white border-purple-300 text-purple-600 hover:border-purple-500 cursor-pointer'
-                      : 'bg-white border-gray-300 text-gray-400 cursor-not-allowed'
+                  onClick={() => handleStepClick(step.number)}
+                  disabled={!isStepClickable(step.number)}
+                  className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full border-2 font-semibold transition-all ${
+                    currentStep === step.number
+                      ? 'bg-orange-500 border-orange-500 text-white shadow-lg transform scale-110'
+                      : isStepClickable(step.number)
+                      ? 'bg-white text-orange-500 hover:shadow-md cursor-pointer'
+                      : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
                   {step.number}
                 </button>
-                <div className="text-center">
-                  <div className={`font-medium ${
-                    currentStep >= step.number ? 'text-purple-600' : 'text-gray-400'
+                <div className="text-center max-w-[100px] md:max-w-[120px]">
+                  <div className={`font-medium text-sm md:text-base ${
+                    currentStep === step.number 
+                      ? 'text-orange-500 font-semibold' 
+                      : isStepClickable(step.number)
+                      ? 'text-gray-700'
+                      : 'text-gray-400'
                   }`}>
                     {step.title}
                   </div>
-                  <div className="text-xs text-gray-500 max-w-[120px]">
+                  <div className="text-xs text-gray-500 hidden md:block">
                     {step.description}
                   </div>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`w-12 h-0.5 ${
-                    currentStep > step.number ? 'bg-purple-600' : 'bg-gray-300'
+                  <div className={`w-4 md:w-12 h-0.5 ${
+                    isStepClickable(step.number + 1) ? 'bg-orange-300' : 'bg-gray-200'
                   }`} />
                 )}
               </div>
@@ -180,71 +207,59 @@ function App() {
           </div>
         </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mb-6">
-          <button
-            onClick={handleBack}
-            disabled={currentStep === 1}
-            className="flex items-center gap-2 px-6 py-3 text-gray-600 hover:text-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            {t('navigation.back', 'Back')}
-          </button>
-          
-          <button
-            onClick={handleRestart}
-            className="px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            {t('navigation.restart', 'Restart')}
-          </button>
-          
-          <button
-            onClick={handleNext}
-            disabled={currentStep === 4 || 
-              (currentStep === 1 && !userImage) ||
-              (currentStep === 2 && (!faceAnalysis || !faceAnalysis.faceDetected)) ||
-              (currentStep === 3 && !selectedHairstyle)}
-            className="flex items-center gap-2 px-6 py-3 text-purple-600 hover:text-purple-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {t('navigation.next', 'Next')}
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
+        {/* 在步骤3显示重新开始按钮 */}
+        {currentStep === 3 && (
+          <div className="flex justify-center mb-6">
+            <button
+              onClick={handleRestart}
+              className="flex items-center gap-2 bg-orange-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-orange-600 transition-colors font-medium"
+            >
+              <Camera className="w-4 h-4" />
+              {t('navigation.restart', 'Start Over')}
+            </button>
+          </div>
+        )}
 
         {/* Main Content Area */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-6">
           {currentStep === 1 && (
-            <CameraCapture onImageCapture={handleImageCapture} />
+            <div>
+              <CameraCapture 
+                onImageCapture={handleImageCapture}
+                existingImage={userImage}
+              />
+              {/* 只有当用户点击了"use this photo"后才显示分析组件 */}
+              {hasCompletedStep1 && userImage && (
+                <div className="mt-6">
+                  <FaceAnalyzer
+                    userImage={userImage}
+                    onAnalysisComplete={handleFaceAnalysisComplete}
+                  />
+                </div>
+              )}
+            </div>
           )}
           
-          {currentStep === 2 && userImage && (
-            <FaceAnalyzer
-              userImage={userImage}
-              onAnalysisComplete={handleFaceAnalysisComplete}
-            />
-          )}
-          
-          {currentStep === 3 && faceAnalysis && (
+          {currentStep === 2 && faceAnalysis && (
             <StyleGallery
               faceAnalysis={faceAnalysis}
               onHairstyleSelect={handleHairstyleSelect}
             />
           )}
           
-          {currentStep === 4 && faceAnalysis && selectedHairstyle && (
+          {currentStep === 3 && faceAnalysis && selectedHairstyle && (
             <ResultsView
               userImage={userImage}
               faceAnalysis={faceAnalysis}
               selectedHairstyle={selectedHairstyle}
               onRecommendationGenerated={handleRecommendationGenerated}
               onRestart={handleRestart}
-              // 不需要传递 currentLanguage，组件内部会使用 useLanguage
             />
           )}
         </div>
 
         {/* Technical Info */}
-        <div className="mt-8 text-center text-sm text-gray-500">
+        <div className="mt-8 text-center text-sm text-gray-500 bg-white py-4">
           <p>
             ✨ {t('common.poweredBy', 'Powered by {technology}', { technology: 'Chrome Built-in AI' })} · 
             🛡️ {t('common.privacy', 'Data Never Leaves Device')} · 

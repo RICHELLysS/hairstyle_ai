@@ -42,11 +42,22 @@ const compressImage = async (blob, maxWidth = 800, quality = 0.7) => {
 
 // 图片验证函数
 const validateImage = (file) => {
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
   if (!file.type.startsWith('image/')) {
     return { valid: false, error: 'Please select an image file (JPEG, PNG, etc.)' };
   }
+
+  // 检查具体类型
+  if (!allowedTypes.includes(file.type)) {
+    return {
+      valid: false,
+      error: `Please select a supported image format (${allowedTypes.join(', ')})`
+    };
+  }
   
-  if (file.size > 10 * 1024 * 1024) {
+  if (file.size > maxSize) {
     return { valid: false, error: 'Image size cannot exceed 10MB' };
   }
   
@@ -58,7 +69,9 @@ const CameraCapture = ({ onImageCapture }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
   const fileInputRef = useRef(null);
+  const videoReadyTimeoutRef = useRef(null);
   
   const { t } = useLanguage();
   
@@ -80,36 +93,73 @@ const CameraCapture = ({ onImageCapture }) => {
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
       }
+      if (videoReadyTimeoutRef.current) {
+        clearTimeout(videoReadyTimeoutRef.current);
+      }
     };
   }, [isCameraActive, previewUrl, stopCamera]);
+
+  // 监听视频元素准备状态
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleCanPlay = () => {
+      console.log('✅ Video can play - camera is ready');
+      setIsVideoReady(true);
+      setCameraLoading(false);
+      if (videoReadyTimeoutRef.current) {
+        clearTimeout(videoReadyTimeoutRef.current);
+      }
+    };
+
+    const handleLoadStart = () => {
+      console.log('🔄 Video load started');
+      setCameraLoading(true);
+    };
+
+    const handleError = () => {
+      console.error('❌ Video error');
+      setCameraLoading(false);
+      setIsVideoReady(false);
+    };
+
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('error', handleError);
+
+    return () => {
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('error', handleError);
+    };
+  }, [videoRef, mode]);
 
   // 启动摄像头
   const handleStartCamera = async () => {
     try {
       setError(null);
-      setIsVideoReady(false); // 修正：应该初始化为false
+      setIsVideoReady(false);
+      setCameraLoading(true);
       setMode('camera');
       
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      console.log('🔄 Starting camera...');
       await startCamera();
       
-      // 监听视频是否就绪
-      if (videoRef.current) {
-        videoRef.current.onloadeddata = () => {
-          console.log('Video data loaded');
-          setIsVideoReady(true);
-        };
-        
-        videoRef.current.oncanplay = () => {
-          console.log('Video can play');
-          setIsVideoReady(true);
-        };
-      }
+      // 设置超时，如果摄像头在5秒内没有就绪，显示错误
+      videoReadyTimeoutRef.current = setTimeout(() => {
+        if (!isVideoReady) {
+          console.error('❌ Camera timeout - taking too long to start');
+          setError(t('camera.timeout', 'Camera is taking too long to start. Please check permissions and try again.'));
+          setCameraLoading(false);
+        }
+      }, 5000);
+
     } catch (err) {
-      console.error('Camera start error:', err);
-      setError(err.message);
+      console.error('❌ Camera start error:', err);
+      setError(err.message || t('camera.startError', 'Failed to start camera'));
       setMode(null);
+      setCameraLoading(false);
     }
   };
 
@@ -118,20 +168,24 @@ const CameraCapture = ({ onImageCapture }) => {
     stopCamera();
     setMode(null);
     setIsVideoReady(false);
+    setCameraLoading(false);
+    if (videoReadyTimeoutRef.current) {
+      clearTimeout(videoReadyTimeoutRef.current);
+    }
   };
 
   // 拍照
   const handleTakePhoto = async () => {
     try {
       setError(null);
-      console.log('Attempting to take photo...');
+      console.log('📸 Attempting to take photo...');
       
       if (!isVideoReady) {
         throw new Error('Camera is not ready, please wait for video to load');
       }
 
       const photoBlob = await takePhoto();
-      console.log('Photo taken, compressing...');
+      console.log('✅ Photo taken, compressing...');
       
       const compressedBlob = await compressImage(photoBlob);
       const url = URL.createObjectURL(compressedBlob);
@@ -139,7 +193,7 @@ const CameraCapture = ({ onImageCapture }) => {
       setPreviewUrl(url);
       handleStopCamera();
     } catch (err) {
-      console.error('Photo capture error:', err);
+      console.error('❌ Photo capture error:', err);
       setError(t('camera.captureError', 'Photo capture failed: ') + err.message);
     }
   };
@@ -195,6 +249,7 @@ const CameraCapture = ({ onImageCapture }) => {
     setMode(null);
     setError(null);
     setIsVideoReady(false);
+    setCameraLoading(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -208,7 +263,7 @@ const CameraCapture = ({ onImageCapture }) => {
 
   return (
     <div className="text-center">
-      <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('camera.title', 'Step 1: Upload Photo')}</h2>
+      <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('Upload Photo')}</h2>
       <p className="text-gray-600 mb-8">{t('camera.subtitle', 'Take or upload a clear front-facing photo for AI face analysis')}</p>
 
       {/* 错误显示 */}
@@ -225,9 +280,10 @@ const CameraCapture = ({ onImageCapture }) => {
       {/* 初始选择模式 */}
       {!mode && !previewUrl && (
         <div className="flex gap-4 justify-center mb-8">
+          {/* 改为橙色主题 */}
           <button
             onClick={handleStartCamera}
-            className="flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-full hover:bg-purple-700 transition-colors"
+            className="flex items-center gap-2 bg-orange-500 text-white px-6 py-3 rounded-full hover:bg-orange-600 transition-colors shadow-md"
           >
             <Camera className="w-5 h-5" />
             {t('camera.takePhoto', 'Take Photo')}
@@ -235,7 +291,7 @@ const CameraCapture = ({ onImageCapture }) => {
           
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-6 py-3 rounded-full hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-6 py-3 rounded-full hover:bg-gray-50 transition-colors shadow-sm"
           >
             <Upload className="w-5 h-5" />
             {t('camera.uploadPhoto', 'Upload Photo')}
@@ -253,7 +309,7 @@ const CameraCapture = ({ onImageCapture }) => {
 
       {/* 摄像头预览 */}
       {mode === 'camera' && (
-        <div className="relative bg-black rounded-xl overflow-hidden mb-6 max-w-2xl mx-auto">
+        <div className="relative bg-black rounded-xl overflow-hidden mb-6 max-w-2xl mx-auto shadow-lg">
           <div className="absolute top-4 right-4 z-10">
             <button
               onClick={handleCloseCamera}
@@ -271,11 +327,11 @@ const CameraCapture = ({ onImageCapture }) => {
             className="w-full h-96 object-cover"
           />
           
-          {/* 摄像头状态指示 */}
-          {!isVideoReady && isCameraActive && (
+          {/* 摄像头状态指示 - 修复：只在摄像头加载中显示 */}
+          {cameraLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50">
               <div className="text-white text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-2"></div>
                 <div>{t('camera.starting', 'Starting camera...')}</div>
               </div>
             </div>
@@ -285,14 +341,14 @@ const CameraCapture = ({ onImageCapture }) => {
             <button
               onClick={handleTakePhoto}
               disabled={!isVideoReady}
-              className={`bg-white rounded-full p-4 shadow-lg transition-all ${
+              className={`rounded-full p-4 shadow-lg transition-all ${
                 isVideoReady 
-                  ? 'hover:bg-gray-100 cursor-pointer' 
-                  : 'opacity-50 cursor-not-allowed'
+                  ? 'bg-white hover:bg-gray-100 cursor-pointer' 
+                  : 'bg-gray-400 opacity-50 cursor-not-allowed'
               }`}
               title={isVideoReady ? t('camera.takePhoto', 'Take Photo') : t('camera.cameraNotReady', 'Camera not ready')}
             >
-              <Circle className="w-8 h-8 text-red-500" fill="currentColor" />
+              <Circle className="w-8 h-8 text-orange-500" fill={isVideoReady ? "currentColor" : "none"} />
             </button>
           </div>
         </div>
@@ -310,9 +366,10 @@ const CameraCapture = ({ onImageCapture }) => {
           </div>
           
           <div className="flex gap-4 justify-center">
+            {/* 改为橙色主题 */}
             <button
               onClick={handleConfirmImage}
-              className="bg-green-600 text-white px-8 py-3 rounded-full hover:bg-green-700 transition-colors"
+              className="bg-orange-500 text-white px-8 py-3 rounded-full hover:bg-orange-600 transition-colors shadow-md"
             >
               {t('camera.useThisPhoto', 'Use This Photo')}
             </button>

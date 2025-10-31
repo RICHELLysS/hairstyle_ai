@@ -1,289 +1,282 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 export const useChromeAI = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [apiStatus, setApiStatus] = useState('checking');
+  const retryCountRef = useRef(0);
+  const maxRetries = 2;
+  const abortControllerRef = useRef(null);
 
   // 检查 Chrome AI 可用性
   const checkAIAvailability = useCallback(async () => {
     try {
+      console.log('🔍 Checking Chrome AI availability...');
+      
       if (typeof LanguageModel === 'undefined') {
+        console.warn('❌ LanguageModel API is not available in this browser');
         setApiStatus('unavailable');
         return false;
       }
 
       const availability = await LanguageModel.availability();
-      console.log('🔍 Chrome AI 可用性:', availability);
+      console.log('✅ Chrome AI availability:', availability);
       
-      if (availability === 'readily') {
+      if (availability === 'readily' || availability === 'available') {
         setApiStatus('available');
         return true;
       } else {
+        console.warn('⚠️ Chrome AI is not available:', availability);
         setApiStatus('unavailable');
         return false;
       }
     } catch (err) {
-      console.error('检查 Chrome AI 可用性失败:', err);
+      console.error('❌ Failed to check Chrome AI availability:', err);
       setApiStatus('unavailable');
       return false;
     }
   }, []);
 
-  // 将图片转换为 base64（移除 Data URL 前缀）
-  const imageToBase64 = useCallback((blob) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        // 移除 "data:image/jpeg;base64," 前缀
-        const base64 = reader.result.split(',')[1];
-        resolve(base64);
-      };
-      reader.readAsDataURL(blob);
-    });
+  // 取消当前操作
+  const cancelOperation = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      console.log('🛑 Operation cancelled by user');
+    }
+    setIsLoading(false);
+    setError(null);
   }, []);
 
-  // 模拟面部分析（降级方案）
-  const simulateFaceAnalysis = useCallback((imageBlob) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const faceShapes = ['椭圆形', '圆形', '方形', '心形', '长形'];
-        const randomShape = faceShapes[Math.floor(Math.random() * faceShapes.length)];
-        
-        resolve({
-          faceShape: randomShape,
-          features: {
-            confidence: (85 + Math.random() * 15).toFixed(1) + '%',
-            symmetry: '良好',
-            proportions: '标准'
+  // 真实的面部分析函数
+// 真实的面部分析 - 修复会话配置
+const analyzeFaceWithAI = useCallback(async (imageBlob, signal) => {
+  try {
+    console.log('🎯 Starting face analysis with Chrome AI...');
+    
+    // 修复：创建会话时指定期望的输入类型
+    const session = await LanguageModel.create({ 
+      signal,
+      expectedInputs: [
+        { 
+          type: "image",  // 明确指定图像输入
+          languages: ["en"]  // 可选：指定语言
+        }
+      ],
+      expectedOutputs: [
+        {
+          type: "text",   // 输出为文本
+          languages: ["en"]
+        }
+      ]
+    });
+    console.log('✅ LanguageModel session created with image support');
+    
+    const promptText = `Analyze this face image and identify the face shape from: Oval, Round, Square, Heart, Long.
+
+Return JSON format:
+{
+  "faceShape": "detected_shape",
+  "confidence": "percentage",
+  "features": {
+    "symmetry": "description",
+    "proportions": "description"
+  }
+}
+
+If no face detected: {"error": "No face detected"}`;
+
+    console.log('📝 Sending prompt to Chrome AI...');
+    
+    // 使用正确的消息格式
+    const messages = [
+      {
+        role: "user",
+        content: [
+          { 
+            type: "text", 
+            value: promptText 
           },
-          isMock: true,
-          note: 'Chrome AI 不可用 - 使用模拟数据'
-        });
-      }, 1500);
-    });
-  }, []);
-
-  // 真实的面部分析 - 使用 Chrome AI Prompt API
-  const analyzeFaceWithAI = useCallback(async (imageBlob) => {
-    try {
-      console.log('🎯 使用 Chrome AI 分析人脸...');
-      
-      // 创建会话
-      const session = await LanguageModel.create();
-      
-      // 转换图片为 base64
-      const imageBase64 = await imageToBase64(imageBlob);
-      
-      // 构建提示词
-      const promptText = `你是一个专业的形象顾问。请分析这张人脸图片，识别以下特征：
-      1. 脸型（椭圆形、圆形、方形、心形、长形）
-      2. 面部特征和轮廓
-      
-      请以 JSON 格式返回分析结果，包含以下字段：
-      - faceShape: 脸型
-      - confidence: 置信度百分比
-      - features: 包含 symmetry（对称性）、proportions（比例）等特征描述
-      
-      如果没有检测到人脸，返回 { "error": "没有检测到人脸" }`;
-
-      // 调用 Prompt API
-      const analysisResult = await session.prompt([
-        {
-          role: "user",
-          content: [
-            { 
-              type: "text", 
-              text: promptText 
-            },
-            { 
-              type: "image", 
-              data: imageBase64 
-            }
-          ]
-        }
-      ]);
-
-      console.log('✅ Chrome AI 分析结果:', analysisResult);
-
-      // 解析响应
-      try {
-        // 尝试从响应中提取 JSON
-        const jsonMatch = analysisResult.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsedResult = JSON.parse(jsonMatch[0]);
-          
-          if (parsedResult.error) {
-            throw new Error(parsedResult.error);
+          {
+            type: "image",
+            value: imageBlob  // 直接使用 Blob 对象
           }
-          
-          return {
-            ...parsedResult,
-            isMock: false,
-            note: '由 Chrome AI Prompt API 生成'
-          };
-        }
-        
-        // 如果是纯文本响应，尝试提取脸型信息
-        const faceShapes = ['椭圆形', '圆形', '方形', '心形', '长形'];
-        const foundShape = faceShapes.find(shape => analysisResult.includes(shape));
-        
-        if (foundShape) {
-          return {
-            faceShape: foundShape,
-            confidence: '85%',
-            features: {
-              symmetry: '良好',
-              proportions: '标准'
-            },
-            isMock: false,
-            note: '由 Chrome AI Prompt API 生成'
-          };
-        }
-        
-        throw new Error('无法解析 AI 响应');
-        
-      } catch (parseError) {
-        console.error('解析 AI 响应失败:', parseError);
-        throw new Error('AI 响应格式错误: ' + analysisResult);
+        ]
       }
+    ];
 
-    } catch (err) {
-      console.error('❌ Chrome AI 分析失败:', err);
-      throw err;
-    }
-  }, [imageToBase64]);
+    console.log('📤 Sending messages with correct format');
+    const analysisResult = await session.prompt(messages);
+    console.log('✅ Chrome AI analysis result received:', analysisResult);
 
-  // 主分析函数
-  const analyzeFace = useCallback(async (imageBlob) => {
-    setIsLoading(true);
-    setError(null);
-    
+    // 解析响应
     try {
-      // 检查 AI 可用性
-      const isAvailable = await checkAIAvailability();
-      
-      if (!isAvailable) {
-        console.log('🔄 Chrome AI 不可用，使用模拟数据');
-        return await simulateFaceAnalysis(imageBlob);
-      }
-
-      // 使用真实的 Chrome AI
-      return await analyzeFaceWithAI(imageBlob);
-
-    } catch (err) {
-      console.error('❌ 面部分析失败:', err);
-      
-      // 优雅降级到模拟数据
-      const errorMessage = err.message.includes('没有检测到人脸') 
-        ? err.message 
-        : `AI 分析失败: ${err.message}，使用模拟数据演示`;
-      
-      setError(errorMessage);
-      
-      if (!err.message.includes('没有检测到人脸')) {
-        console.log('🔄 降级到模拟数据');
-        return await simulateFaceAnalysis(imageBlob);
-      }
-      
-      throw err; // 如果是"没有检测到人脸"错误，直接抛出
-    } finally {
-      setIsLoading(false);
-    }
-  }, [checkAIAvailability, analyzeFaceWithAI, simulateFaceAnalysis]);
-
-  // 生成发型建议
-  const generateRecommendation = useCallback(async (faceAnalysis, hairstyle) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // 检查 AI 可用性
-      const isAvailable = await checkAIAvailability();
-      
-      if (!isAvailable) {
-        // 使用模拟建议
-        return await simulateRecommendation(faceAnalysis, hairstyle);
-      }
-
-      // 使用真实的 Chrome AI Writer API
-      console.log('🎯 使用 Chrome AI 生成发型建议...');
-      
-      const session = await LanguageModel.create();
-      
-      const promptText = `你是一个专业的发型师。基于以下信息生成个性化的发型建议：
-
-用户脸型: ${faceAnalysis.faceShape}
-选择发型: ${hairstyle.name}
-发型特点: ${hairstyle.description}
-
-请生成详细的建议，包含：
-1. 为什么这个发型适合用户的脸型（具体原因）
-2. 日常打理和维护建议
-3. 搭配妆容和服装的建议
-4. 需要注意的事项
-
-请用自然、专业但友好的中文回答。`;
-
-      const recommendation = await session.prompt([
-        {
-          role: "user",
-          content: [
-            { 
-              type: "text", 
-              text: promptText 
-            }
-          ]
+      const jsonMatch = analysisResult.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsedResult = JSON.parse(jsonMatch[0]);
+        
+        if (parsedResult.error) {
+          throw new Error(parsedResult.error);
         }
-      ]);
-
-      console.log('✅ Chrome AI 建议生成成功');
-
-      return {
-        text: recommendation,
-        isMock: false,
-        note: '由 Chrome AI 生成'
-      };
-
-    } catch (err) {
-      console.error('❌ AI 建议生成失败:', err);
-      
-      // 降级到模拟数据
-      setError(`AI 建议生成失败: ${err.message}，使用模拟数据演示`);
-      console.log('🔄 降级到模拟数据');
-      
-      return await simulateRecommendation(faceAnalysis, hairstyle);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [checkAIAvailability]);
-
-  // 模拟建议生成（降级方案）
-  const simulateRecommendation = useCallback(async (faceAnalysis, hairstyle) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const recommendations = {
-          椭圆形: `您的${faceAnalysis.faceShape}脸型非常标准，${hairstyle.name}能够完美展现您的面部优势。${hairstyle.description} 建议定期修剪保持发型层次感。`,
-          圆形: `${hairstyle.name}能够拉长您的${faceAnalysis.faceShape}脸型视觉效果，${hairstyle.description} 建议搭配侧分刘海增加立体感。`,
-          方形: `这款${hairstyle.name}能够柔化您的${faceAnalysis.faceShape}脸型轮廓，${hairstyle.description} 建议保持发型蓬松度。`,
-          心形: `${hairstyle.name}非常适合您的${faceAnalysis.faceShape}脸型，能够平衡额头和下巴的比例。${hairstyle.description}`,
-          长形: `您的${faceAnalysis.faceShape}脸型适合${hairstyle.name}，建议保持发型宽度增加面部饱满感。${hairstyle.description}`
+        
+        console.log('✅ Successfully parsed AI response');
+        return {
+          ...parsedResult,
+          isMock: false
         };
+      }
+      throw new Error('Invalid response format from AI');
+    } catch (parseError) {
+      console.error('❌ Failed to parse AI response');
+      throw new Error('AI response format error');
+    }
 
-        const recommendation = recommendations[faceAnalysis.faceShape] || 
-          `这款${hairstyle.name}很适合您的${faceAnalysis.faceShape}脸型。${hairstyle.description} 建议咨询专业发型师获取更多建议。`;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.log('🛑 Analysis cancelled');
+      throw new Error('Analysis cancelled by user');
+    }
+    console.error('❌ Chrome AI face analysis failed:', err);
+    throw err;
+  }
+}, []);
 
-        resolve({
-          text: recommendation,
-          isMock: true,
-          note: 'Chrome AI 不可用 - 使用模拟数据'
-        });
-      }, 1000);
+  // 主分析函数 - 修复状态管理
+  const analyzeFace = useCallback(async (imageBlob) => {
+    // 在开始前清除之前的错误
+    setError(null);
+    setIsLoading(true);
+    retryCountRef.current = 0;
+    
+    // 创建新的 AbortController
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
+    try {
+      console.log('🚀 Starting face analysis process...');
+      
+      const isAvailable = await checkAIAvailability();
+      
+      if (!isAvailable) {
+        throw new Error('Chrome AI is not available. Please use Chrome 138+ on desktop.');
+      }
+
+      console.log('✅ Chrome AI is available, proceeding with analysis...');
+      
+      const result = await analyzeFaceWithAI(imageBlob, signal);
+      
+      // 成功时清除loading
+      setIsLoading(false);
+      return result;
+
+    } catch (err) {
+      console.error('❌ Face analysis failed:', err);
+      
+      let errorMessage;
+      if (err.message.includes('cancelled')) {
+        errorMessage = 'Analysis was cancelled.';
+      } else if (err.message.includes('No face detected')) {
+        errorMessage = 'No face detected in the image. Please upload a clear front-facing photo.';
+      } else {
+        errorMessage = 'AI analysis failed. Please try again or skip to continue.';
+      }
+      
+      // 错误时设置错误状态并清除loading
+      setError(errorMessage);
+      setIsLoading(false);
+      throw err;
+    } finally {
+      abortControllerRef.current = null;
+    }
+  }, [checkAIAvailability, analyzeFaceWithAI]);
+
+// 生成发型建议 - 修复会话配置
+const generateRecommendation = useCallback(async (faceAnalysis, hairstyle) => {
+  setIsLoading(true);
+  setError(null);
+  retryCountRef.current = 0;
+  abortControllerRef.current = new AbortController();
+  const signal = abortControllerRef.current.signal;
+
+  try {
+    console.log('🚀 Starting recommendation generation...');
+    
+    const isAvailable = await checkAIAvailability();
+    
+    if (!isAvailable) {
+      throw new Error('Chrome AI is not available for generating recommendations.');
+    }
+
+    console.log('🎯 Generating hairstyle recommendation with Chrome AI...');
+    
+    // 修复：对于纯文本会话也指定期望的输入输出类型
+    const session = await LanguageModel.create({ 
+      signal,
+      expectedInputs: [
+        { 
+          type: "text",
+          languages: ["en"]
+        }
+      ],
+      expectedOutputs: [
+        {
+          type: "text",
+          languages: ["en"]
+        }
+      ]
     });
+    
+    const promptText = `You are a professional hair style advisor, generate hairstyle recommendations based on:
+
+Face shape: ${faceAnalysis.faceShape}
+Hairstyle: ${hairstyle.name}
+Features: ${hairstyle.description}
+
+Include:
+1. Why it suits the face shape
+2. Maintenance tips
+3. Styling suggestions
+4. Some popular persons with this hairstyle
+5. How to speak to barber
+Please do not include any Markdown formatted text in your answer.
+Answer in corresponding concise 5 paragraphs within 50 words, use short sentences or bullet points if possible to prevent reading difficulty.`;
+
+    // 修复：使用正确的消息格式
+    const messages = [
+      {
+        role: "user",
+        content: promptText  // 纯文本可以直接使用字符串
+      }
+    ];
+
+    const recommendation = await session.prompt(messages);
+
+    return {
+      text: recommendation,
+      isMock: false
+    };
+
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Recommendation generation cancelled');
+    }
+    console.error('❌ Recommendation generation failed:', err);
+    setError('Recommendation generation failed. Please try again.');
+    throw err;
+  } finally {
+    setIsLoading(false);
+    abortControllerRef.current = null;
+  }
+}, [checkAIAvailability]);
+
+  // 重置错误状态
+  const clearError = useCallback(() => {
+    setError(null);
+    retryCountRef.current = 0;
   }, []);
 
   // 初始化检查
   useState(() => {
+    console.log('🔧 Initializing Chrome AI hook...');
     checkAIAvailability();
   }, [checkAIAvailability]);
 
@@ -294,6 +287,8 @@ export const useChromeAI = () => {
     error,
     apiStatus,
     isChromeAIAvailable: apiStatus === 'available',
+    clearError,
+    cancelOperation,
     checkAIAvailability
   };
 };

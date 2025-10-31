@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 // 支持的语言列表
 export const SUPPORTED_LANGUAGES = [
@@ -151,178 +151,304 @@ export const useLanguage = () => {
   const [error, setError] = useState(null);
   const [translations, setTranslations] = useState(DEFAULT_TRANSLATIONS.en);
   const [detectedLanguage, setDetectedLanguage] = useState(null);
+  const [fallbackToEnglish, setFallbackToEnglish] = useState(false);
 
   // 检查 Chrome Language Detection API 是否可用
   const isLanguageDetectionAvailable = useCallback(() => {
-    return typeof LanguageDetector !== 'undefined';
+    return typeof window !== 'undefined' && 
+           'LanguageDetector' in window && 
+           typeof window.LanguageDetector === 'function';
   }, []);
 
   // 检查 Chrome Translator API 是否可用
   const isTranslatorAvailable = useCallback(() => {
-    return typeof Translator !== 'undefined';
+    return typeof window !== 'undefined' && 
+           'Translator' in window && 
+           typeof window.Translator === 'function';
   }, []);
 
-  // 自动检测用户语言
+  // 检查翻译模型是否可用
+  const checkTranslationAvailable = useCallback(async (sourceLang, targetLang) => {
+    if (!isTranslatorAvailable()) {
+      return false;
+    }
+
+    try {
+      const availability = await window.Translator.availability({
+        sourceLanguage: sourceLang,
+        targetLanguage: targetLang
+      });
+      console.log(`Translation availability for ${sourceLang}->${targetLang}:`, availability);
+      return availability === 'readily' || availability === 'available' || availability === 'downloadable';
+    } catch (err) {
+      console.error('❌ Translation availability check failed:', err);
+      return false;
+    }
+  }, [isTranslatorAvailable]);
+
+  // 自动检测用户语言 - 修复API调用
   const detectLanguage = useCallback(async () => {
     if (!isLanguageDetectionAvailable()) {
-      console.log('Language Detection API not available');
+      console.log('❌ Language Detection API not available');
       return null;
     }
 
     try {
       setError(null);
-      const detector = await LanguageDetector.create();
-      const detectionResult = await detector.detect(navigator.language || 'en');
+      console.log('🔍 Starting language detection...');
       
-      console.log('Language detection result:', detectionResult);
+      // 创建语言检测器实例
+      const detector = await window.LanguageDetector.create();
+      console.log('✅ Language detector created');
       
-      if (detectionResult && detectionResult.language) {
-        const detectedLang = detectionResult.language;
-        setDetectedLanguage(detectedLang);
+      // 使用简单的英文文本进行检测
+      const textToDetect = 'Hello world';
+      console.log('📝 Detecting language for text:', textToDetect);
+      
+      // 执行语言检测 - 根据官方文档，detect返回候选语言列表[citation:2]
+      const detectionResults = await detector.detect(textToDetect);
+      console.log('🎯 Language detection results:', detectionResults);
+      
+      if (detectionResults && detectionResults.length > 0) {
+        const topResult = detectionResults[0];
+        console.log('✅ Top detected language:', topResult.detectedLanguage, 'confidence:', topResult.confidence);
         
         // 检查是否支持检测到的语言
         const supportedLang = SUPPORTED_LANGUAGES.find(
-          lang => lang.code === detectedLang || detectedLang.startsWith(lang.code)
+          lang => lang.code === topResult.detectedLanguage
         );
         
-        if (supportedLang) {
+        if (supportedLang && topResult.confidence > 0.5) {
+          setDetectedLanguage(supportedLang.code);
           return supportedLang.code;
         }
       }
       
+      console.log('❌ No supported language detected with sufficient confidence');
       return null;
     } catch (err) {
-      console.error('Language detection failed:', err);
-      setError('Language detection failed');
+      console.error('❌ Language detection failed:', err);
+      setError('Language detection failed, using English');
       return null;
     }
   }, [isLanguageDetectionAvailable]);
 
-  // 翻译文本
+  // 翻译单个文本
   const translateText = useCallback(async (text, targetLang = currentLanguage) => {
-    if (!isTranslatorAvailable() || targetLang === 'en') {
-      return text; // 如果不可用或目标语言是英语，返回原文
+    // 如果是英语或API不可用，直接返回原文本
+    if (targetLang === 'en' || !isTranslatorAvailable() || !text || fallbackToEnglish) {
+      return text;
     }
 
     try {
       setIsTranslating(true);
-      const translator = await Translator.create();
-      const translation = await translator.translate(text, { targetLanguage: targetLang });
+      console.log(`🔄 Translating: "${text}" to ${targetLang}`);
       
-      console.log(`Translation: "${text}" -> "${translation}" (${targetLang})`);
-      return translation;
+      // 检查翻译是否可用
+      const isAvailable = await checkTranslationAvailable('en', targetLang);
+      if (!isAvailable) {
+        console.log(`❌ Translation not available for en->${targetLang}, using English`);
+        return text;
+      }
+
+      // 创建翻译器实例 - 修复：提供必需的参数[citation:3]
+      const translator = await window.Translator.create({
+        sourceLanguage: 'en',
+        targetLanguage: targetLang
+      });
+      console.log('✅ Translator created');
+      
+      // 执行翻译
+      const translationResult = await translator.translate(text);
+      
+      console.log(`✅ Translation: "${text}" -> "${translationResult}" (${targetLang})`);
+      return translationResult;
     } catch (err) {
-      console.error('Translation failed:', err, text);
-      return text; // 失败时返回原文
+      console.error('❌ Translation failed:', err, 'Text:', text);
+      // 翻译失败时返回原文本
+      return text;
     } finally {
       setIsTranslating(false);
     }
-  }, [currentLanguage, isTranslatorAvailable]);
+  }, [currentLanguage, isTranslatorAvailable, checkTranslationAvailable, fallbackToEnglish]);
 
-  // 批量翻译（用于初始化）
+  // 批量翻译（用于初始化）- 修复API调用
   const batchTranslate = useCallback(async (texts, targetLang) => {
-    if (!isTranslatorAvailable() || targetLang === 'en') {
-      return DEFAULT_TRANSLATIONS.en; // 回退到英语
+    // 如果是英语或API不可用或已回退到英语，返回默认英语翻译
+    if (targetLang === 'en' || !isTranslatorAvailable() || fallbackToEnglish) {
+      console.log('🔄 Using default English translations');
+      return DEFAULT_TRANSLATIONS.en;
     }
 
     try {
       setIsTranslating(true);
       setError(null);
+      console.log(`🔄 Starting batch translation to ${targetLang}`);
       
-      const translator = await Translator.create();
-      const translated = { ...DEFAULT_TRANSLATIONS.en };
-      
-      // 批量翻译所有文本
-      for (const [key, text] of Object.entries(DEFAULT_TRANSLATIONS.en)) {
-        try {
-          const translation = await translator.translate(text, { 
-            targetLanguage: targetLang 
-          });
-          translated[key] = translation;
-        } catch (err) {
-          console.error(`Failed to translate "${key}":`, err);
-          translated[key] = text; // 失败时使用英语
-        }
+      // 检查翻译是否可用
+      const isAvailable = await checkTranslationAvailable('en', targetLang);
+      if (!isAvailable) {
+        throw new Error(`Translation not available for en->${targetLang}`);
       }
+
+      // 创建翻译器实例 - 修复：提供必需的参数
+      const translator = await window.Translator.create({
+        sourceLanguage: 'en',
+        targetLanguage: targetLang
+      });
+      console.log('✅ Translator created for batch translation');
+      
+      const translated = {};
+      const translationPromises = [];
+      
+      // 创建所有翻译任务
+      Object.entries(texts).forEach(([key, text]) => {
+        if (text && typeof text === 'string') {
+          const promise = translator.translate(text).then(translation => {
+            translated[key] = translation;
+          }).catch(err => {
+            console.error(`❌ Failed to translate "${key}":`, err);
+            translated[key] = text; // 失败时使用原文本
+          });
+          translationPromises.push(promise);
+        } else {
+          translated[key] = text; // 非字符串直接复制
+        }
+      });
+      
+      // 等待所有翻译完成
+      await Promise.all(translationPromises);
+      console.log(`✅ Batch translation completed for ${targetLang}`);
       
       return translated;
     } catch (err) {
-      console.error('Batch translation failed:', err);
-      setError('Translation failed, using English');
+      console.error('❌ Batch translation failed:', err);
+      setError(`Translation to ${targetLang} failed, using English`);
+      setFallbackToEnglish(true);
+      // 批量翻译失败时返回英语
       return DEFAULT_TRANSLATIONS.en;
     } finally {
       setIsTranslating(false);
     }
-  }, [isTranslatorAvailable]);
+  }, [isTranslatorAvailable, checkTranslationAvailable, fallbackToEnglish]);
 
-  // 切换语言
+  // 切换语言 - 修复状态同步问题
   const switchLanguage = useCallback(async (langCode) => {
-    if (langCode === currentLanguage) return;
+    if (langCode === currentLanguage && !fallbackToEnglish) return;
     
-    console.log(`Switching language to: ${langCode}`);
+    console.log(`🔄 Switching language to: ${langCode}`);
     
+    // 如果是英语，直接使用默认翻译
     if (langCode === 'en') {
-      // 如果是英语，直接使用默认翻译
       setTranslations(DEFAULT_TRANSLATIONS.en);
       setCurrentLanguage('en');
+      setFallbackToEnglish(false);
       localStorage.setItem('preferred-language', 'en');
+      setError(null);
       return;
     }
     
-    // 对于其他语言，进行翻译
     try {
       setIsTranslating(true);
+      setError(null);
+      setFallbackToEnglish(false);
+      
+      // 尝试翻译
       const translated = await batchTranslate(DEFAULT_TRANSLATIONS.en, langCode);
       
-      setTranslations(translated);
-      setCurrentLanguage(langCode);
-      localStorage.setItem('preferred-language', langCode);
+      // 检查是否有有效的翻译结果
+      const hasValidTranslations = Object.values(translated).some(
+        text => text && typeof text === 'string' && text !== ''
+      );
       
-      console.log(`Language switched to: ${langCode}`);
+      if (hasValidTranslations) {
+        setTranslations(translated);
+        setCurrentLanguage(langCode);
+        localStorage.setItem('preferred-language', langCode);
+        console.log(`✅ Language switched to: ${langCode}`);
+      } else {
+        // 如果没有有效翻译，回退到英语
+        throw new Error('No valid translations received');
+      }
+      
     } catch (err) {
-      console.error('Language switch failed:', err);
-      setError(`Failed to switch to ${langCode}`);
+      console.error('❌ Language switch failed:', err);
+      setError(`Failed to switch to ${langCode}, using English`);
+      
+      // 失败时自动切换到英语 - 确保状态同步
+      setTranslations(DEFAULT_TRANSLATIONS.en);
+      setCurrentLanguage('en'); // 关键修复：确保当前语言状态也重置为英语
+      setFallbackToEnglish(true);
+      localStorage.setItem('preferred-language', 'en');
     } finally {
       setIsTranslating(false);
     }
-  }, [currentLanguage, batchTranslate]);
+  }, [currentLanguage, batchTranslate, fallbackToEnglish]);
 
   // 获取翻译文本（带参数替换）
-  const t = useCallback((key, params = {}) => {
-    let text = translations[key] || key;
+  const t = useCallback((key, fallback = '', params = {}) => {
+    let text = translations[key] || fallback || key;
+    
+    // 如果翻译文本为空，使用回退或键名
+    if (!text || text.trim() === '') {
+      text = fallback || key;
+    }
     
     // 替换参数 {key} -> value
     Object.entries(params).forEach(([paramKey, paramValue]) => {
-      text = text.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), paramValue);
+      const placeholder = `{${paramKey}}`;
+      if (text.includes(placeholder)) {
+        text = text.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), paramValue);
+      }
     });
     
     return text;
   }, [translations]);
 
+  // 重置到英语
+  const resetToEnglish = useCallback(() => {
+    setTranslations(DEFAULT_TRANSLATIONS.en);
+    setCurrentLanguage('en');
+    setFallbackToEnglish(true);
+    localStorage.setItem('preferred-language', 'en');
+    setError(null);
+  }, []);
+
   // 初始化语言设置
   useEffect(() => {
     const initializeLanguage = async () => {
-      // 1. 检查本地存储的用户偏好
-      const savedLanguage = localStorage.getItem('preferred-language');
-      if (savedLanguage && SUPPORTED_LANGUAGES.some(lang => lang.code === savedLanguage)) {
-        await switchLanguage(savedLanguage);
-        return;
+      try {
+        // 1. 检查本地存储的用户偏好
+        const savedLanguage = localStorage.getItem('preferred-language');
+        if (savedLanguage && SUPPORTED_LANGUAGES.some(lang => lang.code === savedLanguage)) {
+          console.log(`📝 Using saved language preference: ${savedLanguage}`);
+          await switchLanguage(savedLanguage);
+          return;
+        }
+        
+        // 2. 尝试自动检测语言
+        console.log('🔍 No saved preference, detecting language...');
+        const detectedLang = await detectLanguage();
+        if (detectedLang && detectedLang !== 'en') {
+          console.log(`🎯 Using detected language: ${detectedLang}`);
+          await switchLanguage(detectedLang);
+          return;
+        }
+        
+        // 3. 使用英语作为默认
+        console.log('🌐 Using default English language');
+        setCurrentLanguage('en');
+        setTranslations(DEFAULT_TRANSLATIONS.en);
+        
+      } catch (err) {
+        console.error('❌ Language initialization failed:', err);
+        // 初始化失败时使用英语
+        resetToEnglish();
       }
-      
-      // 2. 尝试自动检测语言
-      const detectedLang = await detectLanguage();
-      if (detectedLang && detectedLang !== 'en') {
-        await switchLanguage(detectedLang);
-        return;
-      }
-      
-      // 3. 使用英语作为默认
-      setCurrentLanguage('en');
-      setTranslations(DEFAULT_TRANSLATIONS.en);
     };
     
     initializeLanguage();
-  }, [detectLanguage, switchLanguage]);
+  }, [detectLanguage, switchLanguage, resetToEnglish]);
 
   return {
     // 状态
@@ -330,12 +456,14 @@ export const useLanguage = () => {
     isTranslating,
     error,
     detectedLanguage,
+    fallbackToEnglish,
     
     // 方法
     t,
     switchLanguage,
     translateText,
     detectLanguage,
+    resetToEnglish,
     
     // 可用性检查
     isLanguageDetectionAvailable: isLanguageDetectionAvailable(),
